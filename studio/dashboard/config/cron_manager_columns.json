@@ -1,0 +1,9 @@
+{
+  "columns": [
+    {"key": "name", "label": "이름", "enabled": true},
+    {"key": "enabled", "label": "enabled", "enabled": true},
+    {"key": "schedule", "label": "schedule", "enabled": true},
+    {"key": "nextRun", "label": "nextRunAtMs", "enabled": true},
+    {"key": "actions", "label": "액션", "enabled": true}
+  ]
+}

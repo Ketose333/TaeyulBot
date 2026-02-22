@@ -1,0 +1,7 @@
+*.py text eol=lf
+*.js text eol=lf
+*.md text eol=lf
+*.svg text eol=lf
+
+# block examples from archives
+examples/** export-ignore

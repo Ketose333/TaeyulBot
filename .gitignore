@@ -1,0 +1,51 @@
+.env
+.venv/
+
+# Local build/work outputs
+ketose-dev/
+media/
+notion_*.js
+output/
+shorts/
+tcg/
+
+# Local/licensed fonts
+fonts/
+
+# Local runtime state
+memory/context-usage-alert-state.json
+memory/rp_rooms/*
+memory/rp_rooms.json
+memory/youtube-watch-*.json
+utility/common/.windows_audio_state
+
+# OS/editor junk
+*.swp
+.DS_Store
+Thumbs.db
+
+# Python cache/artifacts
+*$py.class
+*.py[cod]
+**/__pycache__/
+
+# Runtime queue/run artifacts (local only)
+memory/runtime/*.jsonl
+memory/runtime/*.lock
+memory/runtime/studio_ui_runtime.json
+
+# Sensitive local memory/profile (keep local only)
+!memory/channels/README.md
+!memory/git-history-archive.md
+USER.md
+memory/*.md
+memory/channels/*.md
+
+# Tooling/test caches
+.mypy_cache/
+.pytest_cache/
+.ruff_cache/
+
+# Local databases
+memory.db
+vector_store.db

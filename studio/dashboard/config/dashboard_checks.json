@@ -1,0 +1,38 @@
+[
+  {
+    "id": "youtube_state",
+    "label": "유튜브 업로드 감시 상태",
+    "type": "script",
+    "script": "/home/user/.openclaw/workspace/studio/dashboard/checks/youtube_state_check.py",
+    "enabled": true
+  },
+  {
+    "id": "dm_sync",
+    "label": "DM 동기화 무결성",
+    "type": "script",
+    "script": "/home/user/.openclaw/workspace/studio/dashboard/checks/dm_sync_check.py",
+    "enabled": true
+  },
+  {
+    "id": "system_dup",
+    "label": "시스템 메시지 중복/유사 노출 신호",
+    "type": "builtin",
+    "builtin": "system_dup",
+    "enabled": true,
+    "hideIfUnknown": true
+  },
+  {
+    "id": "quiet_window",
+    "label": "조용시간 상태",
+    "type": "script",
+    "script": "/home/user/.openclaw/workspace/studio/dashboard/checks/quiet_window_check.py",
+    "enabled": true
+  },
+  {
+    "id": "rp_health",
+    "label": "RP healthcheck 필요 여부",
+    "type": "script",
+    "script": "/home/user/.openclaw/workspace/studio/dashboard/checks/rp_health_check.py",
+    "enabled": true
+  }
+]

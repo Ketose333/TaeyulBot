@@ -1,0 +1,8 @@
+{
+  "youtubeStateGlobs": [
+    "/home/user/.openclaw/workspace/memory/youtube-watch-*.json",
+    "/home/user/.openclaw/workspace/utility/youtube_watch/state/*.json"
+  ],
+  "dmSyncCheckScript": "/home/user/.openclaw/workspace/utility/context/check_sync_integrity.py",
+  "discordDmChannelId": "1470802274518433885"
+}

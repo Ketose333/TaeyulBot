@@ -1,0 +1,9 @@
+{
+  "excludeNames": {
+    "cron": [
+      "cron-quiet-window-disable-0400",
+      "cron-quiet-window-enable-0800"
+    ],
+    "every": []
+  }
+}

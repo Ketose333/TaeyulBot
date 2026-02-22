@@ -1,0 +1,6 @@
+{
+  "youtube": {
+    "okMaxMinutes": 30,
+    "warnMaxMinutes": 120
+  }
+}

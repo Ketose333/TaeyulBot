@@ -1,0 +1,24 @@
+{
+  "appTitle": "Studio Dashboard",
+  "tabDashboard": "대시보드",
+  "tabCronManager": "크론 매니저",
+  "sections": {
+    "summary": "대시보드 요약",
+    "studioUi": "Studio UI 상태",
+    "aiven": "Aiven 바로가기",
+    "checks": "점검 대시보드",
+    "runs": "최근 실행 이력",
+    "rpRecover": "운영 실행",
+    "timeline": "다음 실행 타임라인",
+    "issues": "문제 의심 항목",
+    "jobs": "작업 목록",
+    "pinMessage": "고정메시지 관리"
+  },
+  "buttons": {
+    "run": "즉시실행",
+    "toggleOn": "활성화",
+    "toggleOff": "비활성화",
+    "delete": "삭제",
+    "rpRecover": "RP healthcheck --recover"
+  }
+}
