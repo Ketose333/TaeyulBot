@@ -24,6 +24,7 @@ python3 utility/youtube_watch/register_youtube_watch.py \
 ```
 
 저장 파일: `utility/youtube_watch/state/channels.json`
+- 레지스트리 스키마: `{ "targets": [ { "slug", "channel_id", "notify_channel" } ] }`
 
 ## 3) OAuth 토큰 점검(선택)
 

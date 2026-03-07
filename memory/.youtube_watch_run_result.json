@@ -1,27 +1,8 @@
 {
-  "mode": "api",
-  "per_channel": {
-    "UCxamIHVFYaGAhdl-A4jWVew": {
-      "new_ids": [],
-      "new_count": 0
-    },
-    "UCArLZtok93cO5R9RI4_Y5Jw": {
-      "new_ids": [],
-      "new_count": 0
-    },
-    "UCmnuDfK6fqL2hIWKjAmXJ-Q": {
-      "new_ids": [],
-      "new_count": 0
-    },
-    "UCGgNIN5XPeOwUBOfhRTRq3A": {
-      "new_ids": [],
-      "new_count": 0
-    },
-    "UCGsT7X-FSwHQ4RLq-ZMATHQ": {
-      "new_ids": [],
-      "new_count": 0
-    }
-  },
-  "errors": [],
-  "messages": []
+  "ok": true,
+  "mode": "rss",
+  "api_error": "HTTP Error 400: Bad Request",
+  "new_count": 0,
+  "messages": [],
+  "checked_at": "2026-03-07T09:31:52.296183+00:00"
 }

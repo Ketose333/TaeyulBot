@@ -1,6 +1,8 @@
 {
-  "mode": "api",
+  "ok": true,
+  "mode": "rss",
+  "api_error": "HTTP Error 400: Bad Request",
+  "new_count": 0,
   "messages": [],
-  "errors": [],
-  "new_count": 0
+  "checked_at": "2026-03-07T09:31:52.296183+00:00"
 }

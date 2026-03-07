@@ -43,7 +43,13 @@
 - 채널 state는 `memory/youtube-watch-*.json`만 사용한다.
 - 실행 요약 산출물은 `memory/.youtube_watch_last_result.json`, `memory/.youtube_watch_run_result.json`만 사용한다.
 - `tmp/` 하위 임시 산출물 생성은 금지한다.
-- 금지 경로: 루트 `(금지된 임시 루트 파일 패턴)`, `(금지된 임시 결과 파일)`, `(금지된 임시 실행결과 파일)`, `(금지된 tmp 하위 json 산출물)`, `(금지된 구형 요약 파일)`, `(금지된 구형 실행결과 파일)`.
+- 금지 경로/패턴:
+  - `tmp/youtube_watch*.json`
+  - `tmp_youtube_watch*.json`
+  - `memory/youtube-watch-last-run.json` (구형)
+  - `memory/youtube-watch-run-result.json` (구형)
+  - 루트/임의 경로의 `youtube_watch_run*.json`, `youtube_watch_last*.json` (표준 경로 외)
+  - 표준 허용 경로는 `memory/.youtube_watch_last_result.json`, `memory/.youtube_watch_run_result.json`만 인정
 - 경로 위반 파일이 생기면 다음 점검 턴에 즉시 삭제하고, 표준 파일만 유지한다.
 
 ## 런타임 락 경로 단일화

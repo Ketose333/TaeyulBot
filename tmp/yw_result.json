@@ -1,0 +1,15 @@
+{
+  "mode": "rss",
+  "errors": [
+    "api->rss:HTTPError:HTTP Error 400: Bad Request"
+  ],
+  "messages": [],
+  "updated_states": [
+    "/home/user/.openclaw/workspace/memory/youtube-watch-august_30.json",
+    "/home/user/.openclaw/workspace/memory/youtube-watch-enhypenofficial.json",
+    "/home/user/.openclaw/workspace/memory/youtube-watch-idntt.json",
+    "/home/user/.openclaw/workspace/memory/youtube-watch-midi_bunny.json",
+    "/home/user/.openclaw/workspace/memory/youtube-watch-olee.json"
+  ],
+  "had_new": false
+}
