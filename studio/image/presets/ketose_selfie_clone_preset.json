@@ -1,0 +1,11 @@
+{
+  "name": "ketose_selfie_clone",
+  "description": "최근 잘 나온 셀카 느낌 고정 프리셋 (구도/표정/조명/무드 유지)",
+  "model": "nano-banana-pro-preview",
+  "profile": "kwonjinhyuk",
+  "aspect_ratio": "1:1",
+  "count": 1,
+  "prompt": "정사각형 프레임, 얼굴 클로즈업 셀카, 왼손으로 턱을 괴고 약간 옆을 보는 시선, 무표정에 가까운 차분한 표정, 실내의 부드러운 저채도 조명, 장식 적은 어두운 배경, 흰 셔츠, 자연스러운 피부 질감",
+  "output_name_pattern": "ketose_selfie_clone_{n}.jpg",
+  "purge_existing_outputs": true
+}

@@ -1,0 +1,6 @@
+{
+  "lanHostIp": "192.168.45.222",
+  "hostName": "",
+  "ports": [8767, 8787, 8791, 8795],
+  "portproxyScriptWindows": "/home/user/.openclaw/workspace/utility/common/windows_wsl_portproxy_autoupdate.ps1"
+}

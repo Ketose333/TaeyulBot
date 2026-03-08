@@ -1,0 +1,20 @@
+{
+  "appTitle": "Studio Dashboard",
+  "tabDashboard": "대시보드",
+  "tabCronManager": "크론 매니저",
+  "sections": {
+    "summary": "대시보드 요약",
+    "checks": "점검 대시보드",
+    "issues": "문제 의심 항목",
+    "jobs": "작업 목록",
+    "operations": "운영 실행",
+    "pin_message": "고정 메시지 관리"
+  },
+  "buttons": {
+    "run": "즉시 실행",
+    "toggleOn": "활성화",
+    "toggleOff": "비활성화",
+    "delete": "삭제",
+    "rp_recover": "RP healthcheck --recover"
+  }
+}

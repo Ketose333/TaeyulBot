@@ -1,0 +1,7 @@
+{
+  "youtubeStateGlobs": [
+    "../../../memory/youtube-watch-*.json",
+    "../../../utility/youtube_watch/state/*.json"
+  ],
+  "discordDmChannelId": "1470802274518433885"
+}

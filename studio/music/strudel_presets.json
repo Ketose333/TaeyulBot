@@ -1,0 +1,6 @@
+{
+  "city-night-house": "stack(\n  s(\"bd*4\").gain(1.1),\n  s(\"~ sd ~ sd\").gain(0.85),\n  s(\"hh*8\").gain(0.35),\n  note(\"<f3 a3 c4 e4> <g3 b3 d4 f4>\")\n    .sound(\"triangle\")\n    .gain(0.18)\n    .room(0.12)\n    .lpf(2400)\n).slow(1)",
+  "warm-rnb-loop": "stack(\n  s(\"bd [~ bd] bd ~\").gain(1.0),\n  s(\"~ ~ sd ~\").gain(0.7),\n  s(\"hh*8\").degradeBy(0.2).gain(0.28),\n  note(\"[f3 a3 c4] [e3 g3 b3]\")\n    .sound(\"sawtooth\")\n    .gain(0.14)\n    .room(0.18)\n    .lpf(2000)\n).slow(1.05)",
+  "ambient-dawn-with-beat": "stack(\n  s(\"bd ~ ~ bd\").gain(0.8),\n  s(\"~ ~ sd ~\").gain(0.55),\n  s(\"hh*8\").gain(0.2),\n  note(\"<f4 a4 c5 e5> [g4 b4 d5]\")\n    .sound(\"sine\")\n    .gain(0.12)\n    .room(0.35)\n    .lpf(sine.slow(24).range(700, 2300))\n).slow(1.2)",
+  "ukgarage-punch": "stack(\n  s(\"bd [~ bd] bd [~ bd]\").gain(1.05),\n  s(\"~ sd ~ [sd ~]\").gain(0.82),\n  s(\"hh*16\").degradeBy(0.3).gain(0.26),\n  note(\"[f3 c4 a3] [g3 d4 b3]\")\n    .sound(\"square\")\n    .gain(0.13)\n    .lpf(1800)\n).slow(1.0)"
+}

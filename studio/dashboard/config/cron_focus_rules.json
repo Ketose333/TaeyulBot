@@ -1,0 +1,17 @@
+{
+  "includeKeywords": [
+    "youtube",
+    "context",
+    "ops-checkin",
+    "hygiene",
+    "healthcheck"
+  ],
+  "excludeKeywords": [
+    "quiet-window",
+    "rp-",
+    "reminder",
+    "pokemon",
+    "tiktok"
+  ],
+  "requireEnabled": true
+}
