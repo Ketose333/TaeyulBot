@@ -20,7 +20,6 @@ TARGETS = [
     ('UCArLZtok93cO5R9RI4_Y5Jw', WORKSPACE/'memory/youtube-watch-enhypenofficial.json', '1471931748194455807'),
     ('UCmnuDfK6fqL2hIWKjAmXJ-Q', WORKSPACE/'memory/youtube-watch-idntt.json', '1471931748194455807'),
     ('UCGgNIN5XPeOwUBOfhRTRq3A', WORKSPACE/'memory/youtube-watch-midi_bunny.json', '1471931748194455807'),
-    ('UCGsT7X-FSwHQ4RLq-ZMATHQ', WORKSPACE/'memory/youtube-watch-olee.json', '1197928196893577447'),
 ]
 
 def now_iso():

@@ -4,6 +4,7 @@ from __future__ import annotations
 import argparse
 import html
 import json
+import socket
 import subprocess
 import sys
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
@@ -28,6 +29,17 @@ except ModuleNotFoundError:
 WORKSPACE = WORKSPACE_ROOT
 PRESETS_PATH = WORKSPACE / 'studio' / 'music' / 'strudel_presets.json'
 DEFAULT_PUBLISH_CHANNEL_ID = '1470802274518433885'
+
+
+def _local_ip() -> str:
+    s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+    try:
+        s.connect(('8.8.8.8', 80))
+        return s.getsockname()[0]
+    except Exception:
+        return '127.0.0.1'
+    finally:
+        s.close()
 STRUDEL_WAV_DIRS = [
     (MEDIA_ROOT / 'audio' / 'strudel').resolve(),
     (MEDIA_ROOT / 'bgm' / 'strudel').resolve(),
@@ -323,7 +335,9 @@ def main() -> int:
     ap.add_argument('--port', type=int, default=8795)
     args = ap.parse_args()
     httpd = ThreadingHTTPServer((args.host, args.port), Handler)
-    print(f'[studio-music] http://{args.host}:{args.port}')
+    ip = _local_ip()
+    print(f'STUDIO_UI_MUSIC_BIND:http://{args.host}:{args.port}')
+    print(f'STUDIO_UI_MUSIC_LAN:http://{ip}:{args.port}')
     httpd.serve_forever()
     return 0
 

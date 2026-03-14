@@ -18,6 +18,6 @@
 - 패치는 `1변경-1검증-즉시롤백` 원칙을 따른다.
 
 ## 구형 정리
-- `rp-room-janitor-every-30m`으로 인덱스/오래된 캐시/room prefs를 비파괴 정리한다.
+- `rp-room-janitor-every-1h`로 인덱스/오래된 캐시/room prefs를 비파괴 정리한다.
 - allowlist 채널 키(`RP_ALLOWED_CHANNEL_IDS`)는 프루닝하지 않는다.
 - `_room_prefs.json`의 보호 메타(`__protected_keys__`, `__allowlist_keys__`)를 유지한다.

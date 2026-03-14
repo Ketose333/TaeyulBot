@@ -8,8 +8,19 @@ from pathlib import Path
 
 import discord
 
+try:
+    from utility.common.env_prefer_dotenv import load_env_prefer_dotenv
+except ModuleNotFoundError:
+    import sys
+    from pathlib import Path as _Path
+    sys.path.append(str(_Path(__file__).resolve().parent.parent.parent.parent))
+    from utility.common.bootstrap import ensure_utility_imports
+    ensure_utility_imports(__file__)
+    from utility.common.env_prefer_dotenv import load_env_prefer_dotenv
+
 
 async def run(channel_id: int, text_path: str) -> tuple[int, str]:
+    load_env_prefer_dotenv()
     token = (os.getenv('DISCORD_BOT_TOKEN') or '').strip()
     if not token:
         return 2, 'DISCORD_BOT_TOKEN이 필요해.'

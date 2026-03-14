@@ -16,7 +16,6 @@ def build_dashboard_context(alert: str, api: dict) -> dict:
     load_network_cfg = api["load_network_cfg"]
     load_dashboard_checks = api["load_dashboard_checks"]
     run_script_check = api["run_script_check"]
-    system_dup_signal = api["system_dup_signal"]
     load_cron_columns = api["load_cron_columns"]
     fmt_kst = api["fmt_kst"]
     due_label = api["due_label"]
@@ -73,8 +72,6 @@ def build_dashboard_context(alert: str, api: dict) -> dict:
             issues.append("announce인데 delivery.to 없음")
         if enabled and delivery.get("mode") == "announce" and delivery_channel == "discord" and delivery.get("to") and not str(delivery.get("to")).startswith("user:") and not str(delivery.get("to")).startswith("channel:"):
             issues.append("discord target 형식 불명확(to 권장: user:ID)")
-        if enabled and payload.get("kind") == "agentTurn" and delivery.get("mode") == "none":
-            issues.append("알림 미전송 모드(mode=none)")
         if enabled and session_target == "main" and payload.get("kind") == "systemEvent":
             issues.append("main systemEvent(별도 알림 아님)")
 
@@ -125,20 +122,28 @@ def build_dashboard_context(alert: str, api: dict) -> dict:
     ui_cards = ''.join(ui_cards_list) or "<div class='muted'>UI 상태 데이터 없음</div>"
 
     ncfg = load_network_cfg()
-    nip = str(ncfg.get('lanHostIp', '') or '').strip()
+    nip = str(ncfg.get('effectiveLanHostIp', '') or ncfg.get('lanHostIp', '') or '').strip()
+    cfg_nip = str(ncfg.get('configuredLanHostIp', '') or '').strip()
     nhost = str(ncfg.get('hostName', '') or '').strip()
+    wsl_ip = str(ncfg.get('wslIp', '') or '').strip()
+    ip_stale = bool(ncfg.get('lanHostIpStale', False))
     link_lines = []
     ports_map = api["ui_ports"]()
     for label, port in [('dashboard', ports_map['cron']), ('shorts', ports_map['shorts']), ('image', ports_map['image']), ('music', ports_map['music'])]:
-        links = []
         if nip:
             u = f"http://{nip}:{port}"
-            links.append(f"<a href='{html.escape(u)}' target='_blank'>{html.escape(u)}</a>")
+            link_lines.append(f"<div><b>{label} LAN</b> · <a href='{html.escape(u)}' target='_blank'>{html.escape(u)}</a></div>")
         if nhost:
             u = f"http://{nhost}:{port}"
-            links.append(f"<a href='{html.escape(u)}' target='_blank'>{html.escape(u)}</a>")
-        if links:
-            link_lines.append(f"<div><b>{label}</b> · " + " / ".join(links) + "</div>")
+            link_lines.append(f"<div><b>{label} host</b> · <a href='{html.escape(u)}' target='_blank'>{html.escape(u)}</a></div>")
+        if wsl_ip:
+            u = f"http://{wsl_ip}:{port}"
+            link_lines.append(f"<div><b>{label} WSL</b> · <a href='{html.escape(u)}' target='_blank'>{html.escape(u)}</a></div>")
+        u = f"http://127.0.0.1:{port}"
+        link_lines.append(f"<div><b>{label} local</b> · <a href='{html.escape(u)}' target='_blank'>{html.escape(u)}</a></div>")
+
+    if ip_stale and cfg_nip and nip:
+        link_lines.insert(0, f"<div class='muted'>저장된 LAN IP {html.escape(cfg_nip)} 대신 현재 감지값 {html.escape(nip)}를 사용 중이야.</div>")
 
     remote_urls_html = ''.join(link_lines) or "<div class='muted'>network.json의 lanHostIp를 채우면 바로 링크가 보여.</div>"
     app_cards_html = ''.join(app_cards_list) or "<div class='muted'>shorts/image 상태 데이터 없음</div>"
@@ -157,9 +162,6 @@ def build_dashboard_context(alert: str, api: dict) -> dict:
         if ctype == 'script':
             script = str(chk.get('script', ''))
             lv, msg = run_script_check(script)
-        elif ctype == 'builtin' and str(chk.get('builtin', '')) == 'system_dup':
-            lv, msg = system_dup_signal(jobs)
-
         if bool(chk.get('hideIfUnknown', False)) and lv == 'UNKNOWN':
             continue
 

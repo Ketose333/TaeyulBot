@@ -2,16 +2,16 @@
 """YouTube watch target spec generator (current multi-target runtime format).
 
 목적:
-- `youtube-watch-uploads-10m` 크론 payload의 Targets 블록에 넣을
+- `youtube-watch-uploads-*` 크론 payload의 Targets 블록에 넣을
   채널 매핑 라인을 표준 형식으로 생성한다.
 - 단일 채널 크론을 추가 생성하지 않는다.
 - RSS/DM 전용 구형 포맷을 사용하지 않는다.
 
 예시:
   python3 utility/youtube_watch/register_youtube_watch.py \
-    --slug olee \
-    --channel-id UCGsT7X-FSwHQ4RLq-ZMATHQ \
-    --notify-channel 1197928196893577447
+    --slug example \
+    --channel-id UCXXXXXXXXXXXXXXXXXXXXXX \
+    --notify-channel 1471931748194455807
 """
 
 from __future__ import annotations
@@ -66,7 +66,7 @@ def save_registry(spec: TargetSpec) -> None:
 
 def main() -> None:
     p = argparse.ArgumentParser(description="Generate/update YouTube watch target mapping line")
-    p.add_argument("--slug", required=True, help="human-readable key (e.g., idntt, olee)")
+    p.add_argument("--slug", required=True, help="human-readable key (e.g., idntt, creator_name)")
     p.add_argument("--channel-id", required=True, help="YouTube channel id (UC...)")
     p.add_argument(
         "--notify-channel",

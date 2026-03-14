@@ -1,5 +1,12 @@
 [
   {
+    "id": "cron_health",
+    "label": "크론 건강도",
+    "type": "script",
+    "script": "../checks/cron_health_check.py",
+    "enabled": true
+  },
+  {
     "id": "youtube_state",
     "label": "유튜브 업로드 감시 상태",
     "type": "script",
@@ -14,14 +21,6 @@
     "enabled": true
   },
   {
-    "id": "system_dup",
-    "label": "시스템 메시지 중복/유사 노출 신호",
-    "type": "builtin",
-    "builtin": "system_dup",
-    "enabled": true,
-    "hideIfUnknown": true
-  },
-  {
     "id": "quiet_window",
     "label": "조용시간 상태",
     "type": "script",
@@ -33,6 +32,13 @@
     "label": "RP healthcheck 필요 여부",
     "type": "script",
     "script": "../checks/rp_health_check.py",
+    "enabled": true
+  },
+  {
+    "id": "studio_ui_health",
+    "label": "Studio UI 상태",
+    "type": "script",
+    "script": "../checks/studio_ui_health_check.py",
     "enabled": true
   }
 ]

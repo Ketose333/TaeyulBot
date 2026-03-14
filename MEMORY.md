@@ -50,7 +50,13 @@
 - "실물 보여줘" 요청 시: 설명 없이 아바타 기반 실물 이미지 바로 생성/첨부
 - 이미지/Veo 비율 기본값: 사용자 미지정 시 1:1 고정
 - 생성 요청 처리: 설명보다 생성 실행 우선, 장시간 실행 시 1문장 진행상태 후 완료 즉시 결과 전달
+- 생성 이미지/미디어 첨부 기본값: 1개만 전송, 다중 후보는 사용자 선택 후 추가 전송
 - YouTube watch 산출물 경로: `memory/.youtube_watch_last_result.json`, `memory/.youtube_watch_run_result.json`만 사용 (`tmp/` 산출물 금지)
 - 생성 공통 기본값 단일 소스: `utility/common/generation_defaults.py` (모델/비율/보이스/미디어 경로)
 - YouTube watch 경로 단일 소스: `utility/common/youtube_watch_paths.py` (state/요약 결과 경로)
 - 쇼츠 운영 고정: UI 실행 전 `studio/shorts/defaults.json` 입력값(주제/경로) 먼저 합의하고, 렌더 전 워터마크 이미지 여부를 중간 점검해 제외
+- OpenClaw CLI 호출은 PATH를 가정하지 말고 `utility/common/openclaw_runtime.py`의 바이너리 탐색 헬퍼를 우선 사용
+- 크론/대시보드 운영 기준: 실제 job 이름과 schedule이 어긋나지 않게 유지하고, 대시보드 기본 점검셋은 `cron_health`, `youtube_state`, `dm_sync`, `quiet_window`, `rp_health`, `studio_ui_health`를 기준으로 본다
+- Studio UI는 `studio/ui_runtime.py`로 관리하며, 프로세스는 셸 종료 영향이 없도록 분리 세션으로 띄우는 현재 동작을 유지한다
+- Discord 대시보드 액션은 셸 env를 믿지 말고 workspace `.env`를 직접 로드한다. 특히 `discord_bulk_delete_action.py`, `discord_pin_message_action.py`는 `DISCORD_BOT_TOKEN`을 `.env` 기준으로 읽는 현재 동작을 유지한다
+- 원격 접속 주소는 `network.json`의 고정값만 믿지 말고 Windows LAN IP 자동 감지값과 WSL/local 주소를 함께 노출하는 현재 대시보드 동작을 기준으로 본다

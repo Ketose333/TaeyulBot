@@ -16,6 +16,7 @@ import discord
 
 try:
     from utility.common.generation_defaults import WORKSPACE_ROOT
+    from utility.common.env_prefer_dotenv import load_env_prefer_dotenv
 except ModuleNotFoundError:
     import sys
     from pathlib import Path as _Path
@@ -23,6 +24,7 @@ except ModuleNotFoundError:
     from utility.common.bootstrap import ensure_utility_imports
     ensure_utility_imports(__file__)
     from utility.common.generation_defaults import WORKSPACE_ROOT
+    from utility.common.env_prefer_dotenv import load_env_prefer_dotenv
 BASE = WORKSPACE_ROOT
 RUNTIME_DIR = BASE / 'studio' / 'dashboard' / 'runtime'
 QUEUE_PATH = RUNTIME_DIR / 'discord_bulk_delete_queue.jsonl'
@@ -125,6 +127,7 @@ async def delete_messages_one_by_one(messages: list[discord.Message]) -> int:
 
 
 async def run_bulk_delete_job(job: dict[str, Any]) -> tuple[int, str, str]:
+    load_env_prefer_dotenv()
     token = os.getenv('DISCORD_BOT_TOKEN', '').strip()
     if not token:
         return 2, '', 'DISCORD_BOT_TOKEN이 필요함'
@@ -319,6 +322,7 @@ def runtime_loop(poll_sec: float = 2.0) -> int:
 
 
 def main() -> int:
+    load_env_prefer_dotenv()
     ap = argparse.ArgumentParser(description='Discord bulk-delete runtime / enqueue helper')
     sub = ap.add_subparsers(dest='cmd', required=True)
 

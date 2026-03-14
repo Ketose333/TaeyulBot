@@ -491,8 +491,8 @@ def main() -> int:
 
     server = ThreadingHTTPServer((args.host, args.port), Handler)
     ip = _local_ip()
-    print(f'PRESET_WEBUI:http://127.0.0.1:{args.port}')
-    print(f'PRESET_WEBUI_LAN:http://{ip}:{args.port}')
+    print(f'STUDIO_UI_IMAGE_BIND:http://{args.host}:{args.port}')
+    print(f'STUDIO_UI_IMAGE_LAN:http://{ip}:{args.port}')
     server.serve_forever()
     return 0
 

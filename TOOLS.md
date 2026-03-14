@@ -28,6 +28,7 @@
 - Cron UI: `8767`
 - Shorts UI: `8787`
 - Image UI: `8791`
+- Music UI: `8795`
 
 ### 네트워크/포트포워딩
 - Windows/WSL portproxy 갱신 스크립트: [`utility/common/windows_wsl_portproxy_autoupdate.ps1`](./utility/common/windows_wsl_portproxy_autoupdate.ps1)

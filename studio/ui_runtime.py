@@ -87,7 +87,13 @@ def _start_one(name: str, spec: dict, state: dict) -> str:
     if prev_pid and _is_pid_alive(prev_pid) and _is_port_open(spec['port']):
         return f'{name}: already running (pid={prev_pid}, port={spec["port"]})'
 
-    proc = subprocess.Popen(spec['cmd'], cwd=str(WORKSPACE), stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+    proc = subprocess.Popen(
+        spec['cmd'],
+        cwd=str(WORKSPACE),
+        stdout=subprocess.DEVNULL,
+        stderr=subprocess.DEVNULL,
+        start_new_session=True,
+    )
     state[name] = {'pid': proc.pid, 'port': spec['port'], 'startedAt': int(time.time())}
     return f'{name}: started pid={proc.pid} port={spec["port"]}'
 

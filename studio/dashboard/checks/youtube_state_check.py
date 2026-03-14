@@ -9,6 +9,7 @@ from pathlib import Path
 
 try:
     from utility.common.generation_defaults import WORKSPACE_ROOT
+    from utility.common.openclaw_runtime import extract_json_object, resolve_openclaw_bin
 except ModuleNotFoundError:
     import sys
     from pathlib import Path as _Path
@@ -16,23 +17,19 @@ except ModuleNotFoundError:
     from utility.common.bootstrap import ensure_utility_imports
     ensure_utility_imports(__file__)
     from utility.common.generation_defaults import WORKSPACE_ROOT
+    from utility.common.openclaw_runtime import extract_json_object, resolve_openclaw_bin
 
 THRESH = WORKSPACE_ROOT / 'studio/dashboard/config/thresholds.json'
+OPENCLAW_BIN = resolve_openclaw_bin()
 
 
 def _extract_json(text: str) -> dict:
-    i = text.find('{')
-    if i < 0:
-        return {}
-    try:
-        return json.loads(text[i:])
-    except Exception:
-        return {}
+    return extract_json_object(text)
 
 
-def _required_state_files_from_cron() -> list[Path]:
+def _youtube_job_from_cron() -> tuple[str, list[Path]]:
     cmd = [
-        'openclaw', 'gateway', 'call', 'cron.list',
+        OPENCLAW_BIN, 'gateway', 'call', 'cron.list',
         '--timeout', '120000', '--params', '{"includeDisabled":true}'
     ]
     p = subprocess.run(cmd, text=True, capture_output=True)
@@ -42,23 +39,23 @@ def _required_state_files_from_cron() -> list[Path]:
 
     target = None
     for j in jobs:
-        if str(j.get('name', '')) == 'youtube-watch-uploads-10m':
+        if str(j.get('name', '')).startswith('youtube-watch-uploads-'):
             target = j
             break
     if not target:
-        return []
+        return '', []
 
     msg = str(((target.get('payload') or {}).get('message') or ''))
     ws = str(WORKSPACE_ROOT).replace('\\', '/')
     pat = rf"{re.escape(ws)}/memory/youtube-watch-[^\s`'\"]+\.json"
     paths = re.findall(pat, msg)
-    return sorted({Path(p) for p in paths})
+    return str(target.get('name', 'youtube-watch-uploads')), sorted({Path(p) for p in paths})
 
 
 def main() -> int:
-    files = _required_state_files_from_cron()
+    job_name, files = _youtube_job_from_cron()
     if not files:
-        print('UNKNOWN|youtube-watch-uploads-10m 설정에서 state 경로를 찾지 못했어.')
+        print('UNKNOWN|youtube watch 크론 설정에서 state 경로를 찾지 못했어.')
         return 0
 
     missing = [p for p in files if not p.exists()]
@@ -81,11 +78,11 @@ def main() -> int:
         pass
 
     if max_age <= ok_min * 60:
-        print(f"OK|필수 state {len(files)}개 최신(최대 {max_age//60}분 지연)")
+        print(f"OK|{job_name} state {len(files)}개 최신(최대 {max_age//60}분 지연)")
     elif max_age <= warn_min * 60:
-        print(f"WARN|필수 state {len(files)}개 일부 지연(최대 {max_age//60}분 지연)")
+        print(f"WARN|{job_name} state {len(files)}개 일부 지연(최대 {max_age//60}분 지연)")
     else:
-        print(f"ERROR|필수 state {len(files)}개 오래됨(최대 {max_age//3600}시간 지연)")
+        print(f"ERROR|{job_name} state {len(files)}개 오래됨(최대 {max_age//3600}시간 지연)")
     return 0
 
 

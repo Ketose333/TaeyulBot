@@ -5,6 +5,7 @@ import argparse
 import html
 import json
 import os
+import socket
 import subprocess
 import time
 from datetime import datetime, timezone
@@ -17,6 +18,7 @@ from view_context import build_dashboard_context
 
 try:
     from utility.common.generation_defaults import WORKSPACE_ROOT
+    from utility.common.openclaw_runtime import extract_json_object, resolve_openclaw_bin
     from studio.common.runtime_config import ui_ports
 except ModuleNotFoundError:
     import sys
@@ -25,6 +27,7 @@ except ModuleNotFoundError:
     from common.bootstrap import ensure_workspace_imports
     ensure_workspace_imports(__file__)
     from utility.common.generation_defaults import WORKSPACE_ROOT
+    from utility.common.openclaw_runtime import extract_json_object, resolve_openclaw_bin
     from studio.common.runtime_config import ui_ports
 
 
@@ -33,13 +36,7 @@ def _val(form: dict[str, list[str]], key: str, default: str = "") -> str:
 
 
 def _extract_json(text: str) -> dict:
-    i = text.find("{")
-    if i < 0:
-        return {}
-    try:
-        return json.loads(text[i:])
-    except Exception:
-        return {}
+    return extract_json_object(text)
 
 
 def _fmt_kst(ms: int | None) -> str:
@@ -50,6 +47,58 @@ def _fmt_kst(ms: int | None) -> str:
         return dt.strftime('%m-%d %H:%M')
     except Exception:
         return str(ms)
+
+
+def _local_ip() -> str:
+    s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+    try:
+        s.connect(('8.8.8.8', 80))
+        return s.getsockname()[0]
+    except Exception:
+        return '127.0.0.1'
+    finally:
+        s.close()
+
+
+def _wsl_unc_path(raw_path: str) -> str:
+    path = (raw_path or '').strip()
+    if not path.startswith('/'):
+        return path
+    distro = (os.getenv('WSL_DISTRO_NAME') or 'Ubuntu').strip() or 'Ubuntu'
+    return f"\\\\wsl.localhost\\{distro}{path.replace('/', '\\')}"
+
+
+def _windows_lan_ips() -> list[str]:
+    script = (
+        "$ips = Get-NetIPAddress -AddressFamily IPv4 | "
+        "Where-Object { $_.IPAddress -notlike '127.*' -and $_.IPAddress -notlike '169.254*' "
+        "-and $_.InterfaceAlias -notmatch 'WSL|Hyper-V|vEthernet' }; "
+        "$ips | Sort-Object InterfaceMetric,SkipAsSource | Select-Object -ExpandProperty IPAddress"
+    )
+    cmds = [
+        ['powershell.exe', '-NoProfile', '-Command', script],
+        ['pwsh', '-NoProfile', '-Command', script],
+    ]
+    for cmd in cmds:
+        try:
+            p = subprocess.run(cmd, text=True, capture_output=True, timeout=20)
+        except Exception:
+            continue
+        if p.returncode != 0:
+            continue
+        ips = []
+        seen = set()
+        for line in (p.stdout or '').splitlines():
+            ip = line.strip()
+            if not ip or ip.startswith('127.') or ip.startswith('169.254.'):
+                continue
+            if ip in seen:
+                continue
+            seen.add(ip)
+            ips.append(ip)
+        if ips:
+            return ips
+    return []
 
 
 def _due_label(ms: int | None, now_ms: int) -> str:
@@ -71,7 +120,7 @@ def _due_label(ms: int | None, now_ms: int) -> str:
 
 def gateway_call(method: str, params: dict) -> tuple[bool, dict, str]:
     cmd = [
-        "openclaw",
+        OPENCLAW_BIN,
         "gateway",
         "call",
         method,
@@ -111,21 +160,7 @@ PIN_MESSAGE_ACTION = WORKSPACE / 'studio' / 'dashboard' / 'actions' / 'discord_p
 RP_RT_LOCK = WORKSPACE / 'memory' / 'rp_rooms' / '_runtime_lock.json'
 RP_RUNTIME_SCRIPT = WORKSPACE / 'studio' / 'dashboard' / 'actions' / 'rp_runtime_action.py'
 NETWORK_CFG = WORKSPACE / 'studio' / 'dashboard' / 'config' / 'network.json'
-
-
-def _system_dup_signal(jobs: list[dict]) -> tuple[str, str]:
-    target = None
-    for j in jobs:
-        if str(j.get('name', '')) == 'daily-ops-checkin-1200':
-            target = j
-            break
-    if not target:
-        return 'UNKNOWN', 'daily-ops-checkin-1200 미등록'
-    st = target.get('state', {}) or {}
-    last_status = str(st.get('lastStatus', '-'))
-    if last_status.lower() in {'ok', '-'}:
-        return 'OK', f'lastStatus={last_status}'
-    return 'WARN', f'lastStatus={last_status}'
+OPENCLAW_BIN = resolve_openclaw_bin()
 
 
 
@@ -338,7 +373,7 @@ def _ensure_dm_bulk_runtime() -> None:
         str((WORKSPACE / 'studio' / 'dashboard' / 'actions' / 'discord_bulk_delete_action.py').resolve()),
         'run', '--poll-sec', '2'
     ]
-    subprocess.Popen(cmd, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+    subprocess.Popen(cmd, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, start_new_session=True)
 
 
 def _dm_bulk_delete_enqueue(channel_id: str, limit: int, delete_pinned: bool = False) -> tuple[bool, str]:
@@ -448,14 +483,32 @@ def _initial_reset_run(reason: str, target: str = 'workspace') -> tuple[bool, st
 
 def _load_network_cfg() -> dict:
     try:
-        return json.loads(NETWORK_CFG.read_text(encoding='utf-8'))
+        cfg = json.loads(NETWORK_CFG.read_text(encoding='utf-8'))
     except Exception:
-        return {}
+        cfg = {}
+
+    configured_ip = str(cfg.get('lanHostIp', '') or '').strip()
+    detected_ips = _windows_lan_ips()
+    effective_ip = configured_ip
+    stale = False
+    if detected_ips:
+        if configured_ip and configured_ip in detected_ips:
+            effective_ip = configured_ip
+        else:
+            effective_ip = detected_ips[0]
+            stale = bool(configured_ip and configured_ip != effective_ip)
+
+    cfg['configuredLanHostIp'] = configured_ip
+    cfg['detectedLanHostIps'] = detected_ips
+    cfg['effectiveLanHostIp'] = effective_ip
+    cfg['lanHostIpStale'] = stale
+    cfg['wslIp'] = _local_ip()
+    return cfg
 
 
 def _remote_urls() -> list[str]:
     cfg = _load_network_cfg()
-    ip = str(cfg.get('lanHostIp', '') or '').strip()
+    ip = str(cfg.get('effectiveLanHostIp', '') or cfg.get('lanHostIp', '') or '').strip()
     host = str(cfg.get('hostName', '') or '').strip()
     ports = list(ui_ports().values())
     out = []
@@ -479,14 +532,22 @@ def _remote_urls() -> list[str]:
 def _run_portproxy_update() -> tuple[bool, str]:
     cfg = _load_network_cfg()
     script = str(cfg.get('portproxyScriptWindows', '') or '').strip()
+    script_unc = _wsl_unc_path(script)
     ports = list(ui_ports().values())
     ports_arg = ','.join(str(int(x)) for x in ports if str(x).isdigit()) or ','.join(str(x) for x in ui_ports().values())
     if not script:
         return False, 'network.json에 portproxyScriptWindows가 없어.'
 
+    elevated = (
+        f"$script={json.dumps(script_unc)}; "
+        f"$ports={json.dumps(ports_arg)}; "
+        "$argList=@('-NoProfile','-ExecutionPolicy','Bypass','-File',$script,'-Ports',$ports); "
+        "Start-Process powershell.exe -Verb RunAs -Wait -ArgumentList $argList"
+    )
     cmds = [
-        ['powershell.exe', '-ExecutionPolicy', 'Bypass', '-File', script, '-Ports', ports_arg],
-        ['pwsh', '-ExecutionPolicy', 'Bypass', '-File', script, '-Ports', ports_arg],
+        ['powershell.exe', '-NoProfile', '-ExecutionPolicy', 'Bypass', '-File', script_unc, '-Ports', ports_arg],
+        ['pwsh', '-NoProfile', '-ExecutionPolicy', 'Bypass', '-File', script_unc, '-Ports', ports_arg],
+        ['powershell.exe', '-NoProfile', '-Command', elevated],
     ]
     last = ''
     for cmd in cmds:
@@ -494,7 +555,8 @@ def _run_portproxy_update() -> tuple[bool, str]:
             p = subprocess.run(cmd, text=True, capture_output=True, timeout=120)
             out = ((p.stdout or '') + ('\n' + p.stderr if p.stderr else '')).strip()
             if p.returncode == 0:
-                return True, (out.splitlines()[-1] if out else 'portproxy 갱신 완료')
+                tail = out.splitlines()[-1] if out else 'portproxy 갱신 완료'
+                return True, tail
             last = out[-260:]
         except Exception as e:
             last = str(e)
@@ -612,7 +674,6 @@ def render_page(alert: str = "") -> bytes:
         "ui_ports": ui_ports,
         "load_dashboard_checks": _load_dashboard_checks,
         "run_script_check": _run_script_check,
-        "system_dup_signal": _system_dup_signal,
         "load_cron_columns": _load_cron_columns,
         "fmt_kst": _fmt_kst,
         "due_label": _due_label,
@@ -927,13 +988,15 @@ Handler = create_handler(render_page, handle_post, _post_api)
 
 def main() -> int:
     ap = argparse.ArgumentParser(description="Studio dashboard web manager")
-    ap.add_argument("--host", default="127.0.0.1")
+    ap.add_argument("--host", default="0.0.0.0")
     ap.add_argument("--port", type=int, default=8767)
     args = ap.parse_args()
 
     _ensure_dm_bulk_runtime()
     server = ThreadingHTTPServer((args.host, args.port), Handler)
-    print(f"STUDIO_DASHBOARD:http://{args.host}:{args.port}")
+    ip = _local_ip()
+    print(f"STUDIO_UI_DASHBOARD_BIND:http://{args.host}:{args.port}")
+    print(f"STUDIO_UI_DASHBOARD_LAN:http://{ip}:{args.port}")
     server.serve_forever()
     return 0
 

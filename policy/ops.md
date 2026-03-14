@@ -9,7 +9,7 @@
 
 ## 일일 점검
 - 09:30: 컨텍스트 위생 점검(정리 + 이상 징후 확인)
-- 12:00: ops-checkin(슬림 체크리스트)
+- 현재 12:00 `daily-ops-checkin-1200` 크론은 미운영 상태로 본다. 관련 규칙은 복구 전까지 활성 기준으로 취급하지 않는다.
 - 7일 연속 무이상 항목은 주 1회 샘플링으로 전환하고 재발 시 일일 점검으로 복귀한다.
 
 ## 조용시간(대화/크론)
@@ -23,21 +23,14 @@
 4. 체크리스트 문서(`policy/qa_checklist.md`/`policy/studio.md`/`studio/dashboard/config/pinned_message.md`)를 점검해 09:30 범위와 충돌/중복이 없는지 확인한다.
 5. 보호 섹션(`DM_CANONICAL_POLICY`/`IMPORT_FROM_CHANNELS`/`EXPORT_TO_ALL_CHANNELS`/`DM_SYNC_EXPORT`)은 삭제·개명하지 않는다.
 6. 문체 정리(허용 범위 내)만 수행하고 의미/수치/경로/명령어/ID는 변경하지 않는다.
-7. 대시보드 점검 항목(`youtube_state`/`dm_sync`/`system_dup`/`quiet_window`/`rp_health`)은 09:30에서 중복 점검하지 않는다.
+7. 대시보드 점검 항목(`cron_health`/`youtube_state`/`dm_sync`/`quiet_window`/`rp_health`/`studio_ui_health`)은 09:30에서 중복 점검하지 않는다.
 8. 변경이 있으면 1줄 보고, 없으면 `NO_REPLY`.
-
-## 12:00 실행 순서 (daily-ops-checkin-1200)
-1. 판정 원칙 적용: 단일 timeout/오류로 실패 단정 금지, 상충 시 runs/`lastRunAt` 기준으로 최종 판정.
-2. `sessions.json` 무결성을 점검한다(핵심 키 존재, `agent:main:cron:*:run:*` 과증식, 고아 cron 세션 키 누적).
-3. 시스템 메시지 중복/유사 문구 반복 노출 여부를 점검한다.
-4. 유튜브 알림 상태를 state 최신성 기준으로 점검한다.
-5. DM 동기화 무결성(`check_sync_integrity.py`)을 점검한다.
-6. 3~5줄로 요약 보고한다. 이상 없으면 "이상 없음. 오늘은 추가 질문 생략할게."를 사용한다.
 
 ## 현재 슬림 체크리스트
 - 대시보드 점검 항목의 단일 소스는 [`studio/dashboard/config/dashboard_checks.json`](../studio/dashboard/config/dashboard_checks.json)으로 관리한다.
 - 임계치/판정값 단일 소스는 [`studio/dashboard/config/thresholds.json`](../studio/dashboard/config/thresholds.json)으로 관리한다.
 - 정책 문서에는 점검 원칙만 유지하고, 개별 항목/라벨/임계치는 대시보드 설정 파일에서만 갱신한다.
+- 현재 기본 점검 셋은 `cron_health`, `youtube_state`, `dm_sync`, `quiet_window`, `rp_health`, `studio_ui_health`다.
 
 ## YouTube Watch 파일 경로 단일화
 - 채널 state는 `memory/youtube-watch-*.json`만 사용한다.
