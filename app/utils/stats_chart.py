@@ -44,7 +44,7 @@ def generate_rank_chart(sign: str, daily: list[tuple[str, int]]) -> BytesIO:
     x     = list(range(len(dates)))
     avg   = sum(ranks) / len(ranks)
 
-    fig, ax = plt.subplots(figsize=(8, 4))
+    fig, ax = plt.subplots(figsize=(8, 4), constrained_layout=True)
     fig.patch.set_facecolor(BG)
     ax.set_facecolor(PANEL)
 
@@ -99,9 +99,8 @@ def generate_rank_chart(sign: str, daily: list[tuple[str, int]]) -> BytesIO:
     ax.text(len(x) - 0.2, avg - 0.35, f"평균 {avg:.1f}위",
             color=AVERAGE, fontsize=7.5, ha="right", alpha=0.85)
 
-    plt.tight_layout(pad=1.5)
     buf = BytesIO()
-    plt.savefig(buf, format="png", dpi=120, bbox_inches="tight", facecolor=BG)
+    plt.savefig(buf, format="png", dpi=120, facecolor=BG)
     plt.close(fig)
     buf.seek(0)
     return buf
