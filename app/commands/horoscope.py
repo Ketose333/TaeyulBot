@@ -9,7 +9,7 @@ from discord.ext import commands
 
 from app.services.horoscope_service import get_today_fortune, get_sign_fortune
 from app.services.stats_service import get_sign_stats, get_leaderboard
-from app.utils.saju_engine import ZODIAC_SIGNS, ZODIAC_EMOJI, get_compatibility
+from app.utils.saju_engine import ZODIAC_SIGNS, ZODIAC_EMOJI, get_compatibility, get_daily_energy
 from app.utils.stats_chart import generate_rank_chart
 from app.utils.user_store import get_zodiac, set_zodiac, load_all
 from app.utils.date_utils import kst_now, get_history, get_yesterday_rankings
@@ -570,6 +570,41 @@ class HoroscopeCog(commands.Cog):
             )
         embed.add_field(name="", value="\n".join(lines), inline=False)
         await interaction.followup.send(embed=embed)
+
+
+    @app_commands.command(name="오늘의기운", description="오늘의 천간·오행 기운과 별자리별 영향을 알려줍니다.")
+    @app_commands.allowed_installs(guilds=True, users=True)
+    @app_commands.allowed_contexts(guilds=True, dms=True, private_channels=True)
+    async def daily_energy(self, interaction: discord.Interaction) -> None:
+        today = kst_now()
+        energy = get_daily_energy(today.date())
+        today_str = today.strftime("%Y년 %m월 %d일")
+
+        OHANG_EMOJI = {"목": "🌿", "화": "🔥", "토": "🪨", "금": "⚙️", "수": "💧"}
+        o_emoji = OHANG_EMOJI.get(energy["day_ohang"], "✨")
+
+        embed = discord.Embed(
+            title=f"{o_emoji} {today_str} 오늘의 기운",
+            description=f"**{energy['gan']}{energy['ji']}일** — {energy['desc']}",
+            color=EMBED_COLOR,
+        )
+
+        if energy["blessed"]:
+            signs_str = "  ".join(f"{ZODIAC_EMOJI.get(s,'⭐')}{s}" for s in energy["blessed"])
+            embed.add_field(
+                name=f"🌟 기운 받는 별자리 ({energy['day_ohang']}이 생하는 오행)",
+                value=signs_str,
+                inline=False,
+            )
+        if energy["challenged"]:
+            signs_str = "  ".join(f"{ZODIAC_EMOJI.get(s,'⭐')}{s}" for s in energy["challenged"])
+            embed.add_field(
+                name=f"⚡ 주의할 별자리 ({energy['day_ohang']}이 극하는 오행)",
+                value=signs_str,
+                inline=False,
+            )
+
+        await interaction.response.send_message(embed=embed)
 
 
 async def setup(bot: commands.Bot) -> None:

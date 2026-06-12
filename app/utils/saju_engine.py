@@ -376,14 +376,26 @@ def get_fortune_text(sign: str, rank: int, d: date) -> str:
     rng = random.Random(f"{d.isoformat()}-{sign}-fortune")
     text = rng.choice(templates)
 
-    # 상생상극 부가 설명 (1~3위 / 10~12위)
-    day_ohang = CHEONGAN_OHANG[get_day_cheongan(d)]
-    if rank <= 3 and SANGSAENG.get(day_ohang) == ohang:
-        text += f" ({day_ohang}{_josa(day_ohang, '이/가')} {ohang}{_josa(ohang, '을/를')} 생하는 날)"
-    elif rank >= 10 and SANGGEUK.get(day_ohang) == ohang:
-        text += f" ({day_ohang}{_josa(day_ohang, '이/가')} {ohang}{_josa(ohang, '을/를')} 극하는 날)"
-
     return text
+
+
+def get_daily_energy(d: date) -> dict:
+    """오늘의 천간·지지·오행 기운과 상생상극 영향을 반환."""
+    gan = get_day_cheongan(d)
+    ji = get_day_jiji(d)
+    day_ohang = CHEONGAN_OHANG[gan]
+
+    blessed = [s for s in ZODIAC_SIGNS if SANGSAENG.get(day_ohang) == ZODIAC_OHANG[s]]
+    challenged = [s for s in ZODIAC_SIGNS if SANGGEUK.get(day_ohang) == ZODIAC_OHANG[s]]
+
+    return {
+        "gan": gan,
+        "ji": ji,
+        "day_ohang": day_ohang,
+        "desc": CHEONGAN_DESC[gan],
+        "blessed": blessed,
+        "challenged": challenged,
+    }
 
 
 def generate_all_fortunes(rankings: list[str], d: date) -> dict[str, str]:
