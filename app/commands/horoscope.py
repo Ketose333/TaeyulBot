@@ -359,7 +359,7 @@ class HoroscopeCog(commands.Cog):
         lines = []
         for i, sign in enumerate(data["rankings"]):
             rank = i + 1
-            medal = RANK_MEDALS.get(rank, f"`{rank:2d}위`")
+            medal = RANK_MEDALS.get(rank, f"{rank}위")
             emoji = ZODIAC_EMOJI.get(sign, "⭐")
             fortune = data["fortunes"].get(sign, "")
             lines.append(f"{medal} **{emoji} {sign}** — {fortune}")
@@ -413,7 +413,7 @@ class HoroscopeCog(commands.Cog):
         set_zodiac(interaction.user.id, 별자리)
         emoji = ZODIAC_EMOJI.get(별자리, "⭐")
         await interaction.response.send_message(
-            f"{emoji} **{별자리}**(으)로 등록됐어요! 이제 운세 메시지에서 통계와 프로필을 확인할 수 있습니다.",
+            f"{emoji} **{별자리}**로 등록됐어요! 이제 운세 메시지에서 통계와 프로필을 확인할 수 있습니다.",
             ephemeral=True,
         )
 
