@@ -10,6 +10,8 @@ log = logging.getLogger(__name__)
 class TaeyulBot(commands.Bot):
     def __init__(self):
         intents = discord.Intents.default()
+        # /리더보드에서 서버 멤버를 식별하기 위해 필요 (privileged — Developer Portal에서 토글)
+        intents.members = True
         super().__init__(command_prefix="!", intents=intents)
 
     async def setup_hook(self) -> None:

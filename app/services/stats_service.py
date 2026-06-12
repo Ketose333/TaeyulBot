@@ -46,3 +46,21 @@ def get_sign_stats(sign: str, year: int, month: int) -> dict:
         "rank_12_count": ranks.count(12),
         "daily": daily,
     }
+
+
+def get_leaderboard(user_signs: dict[int, str], year: int, month: int) -> list[dict]:
+    """등록 유저별 이달 평균 순위를 집계해 오름차순 정렬한 리더보드."""
+    board = []
+    for user_id, sign in user_signs.items():
+        stats = get_sign_stats(sign, year, month)
+        if stats["total_days"] == 0:
+            continue
+        board.append({
+            "user_id": user_id,
+            "sign": sign,
+            "avg_rank": stats["avg_rank"],
+            "rank_1_count": stats["rank_1_count"],
+            "total_days": stats["total_days"],
+        })
+    board.sort(key=lambda e: e["avg_rank"])
+    return board

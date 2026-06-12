@@ -113,6 +113,51 @@ LUCKY_ITEMS: dict[str, list[str]] = {
     ],
 }
 
+# ── 행운 색/숫자/방향 (오행별 전통값) ─────────────────────────────────
+LUCKY_COLORS: dict[str, list[str]] = {
+    "목": ["초록", "청색"],
+    "화": ["빨강", "주황"],
+    "토": ["노랑", "황금색"],
+    "금": ["흰색", "은색"],
+    "수": ["검정", "남색"],
+}
+LUCKY_DIRECTIONS: dict[str, str] = {
+    "목": "동쪽", "화": "남쪽", "토": "중앙", "금": "서쪽", "수": "북쪽",
+}
+LUCKY_NUMBERS: dict[str, list[int]] = {
+    "목": [3, 8], "화": [2, 7], "토": [5, 10], "금": [4, 9], "수": [1, 6],
+}
+
+# ── 궁합 관계별 설명 ──────────────────────────────────────────────────
+COMPAT_RELATIONS: dict[str, dict] = {
+    "상생": {"emoji": "💞", "score_range": (88, 98)},
+    "비화": {"emoji": "🤝", "score_range": (75, 85)},
+    "중립": {"emoji": "🙂", "score_range": (63, 74)},
+    "상극": {"emoji": "⚡", "score_range": (45, 62)},
+}
+COMPAT_DESC: dict[str, list[str]] = {
+    "상생": [
+        "서로의 기운을 북돋아 주는 천생연분이에요. 함께라면 무엇이든 술술 풀립니다.",
+        "한쪽이 다른 쪽을 자라게 하는 환상의 조합. 곁에 있을수록 빛나는 사이입니다.",
+        "기운이 맞물려 시너지가 폭발하는 궁합. 같이 도전할수록 좋은 결과가 따라와요.",
+    ],
+    "비화": [
+        "같은 기운을 나눠 가진 편안한 사이. 말하지 않아도 통하는 게 많아요.",
+        "닮은 결을 지녀 함께 있으면 안정감이 큽니다. 오래 가는 인연이에요.",
+        "비슷한 성향이라 호흡이 척척. 서로를 깊이 이해하는 관계입니다.",
+    ],
+    "중립": [
+        "특별히 부딪치지도, 끌어주지도 않는 무난한 사이. 노력한 만큼 가까워져요.",
+        "서로 다른 기운이지만 충돌은 없어요. 배려하면 좋은 관계로 발전합니다.",
+        "거리감 없이 편안한 궁합. 작은 관심이 큰 인연으로 이어질 수 있어요.",
+    ],
+    "상극": [
+        "기운이 부딪칠 수 있는 사이. 서로의 차이를 인정하면 의외로 배울 게 많아요.",
+        "한쪽이 다른 쪽을 누르는 긴장된 조합. 한 발씩 양보하면 균형이 잡힙니다.",
+        "쉽지 않지만 그만큼 자극이 되는 관계. 다름을 존중할 때 빛을 발해요.",
+    ],
+}
+
 # ── 운세 문구 (등급 × 오행) ───────────────────────────────────────────
 FORTUNE_TEMPLATES: dict[str, dict[str, list[str]]] = {
     "대길": {
@@ -287,6 +332,41 @@ def get_lucky_item(sign: str, d: date) -> str:
     ohang = ZODIAC_OHANG[sign]
     rng = random.Random(f"{d.isoformat()}-{sign}-lucky")
     return rng.choice(LUCKY_ITEMS[ohang])
+
+
+def get_lucky_extras(sign: str, d: date) -> dict:
+    """오행 기반 행운의 색·숫자·방향. 날짜+별자리 시드로 고정."""
+    ohang = ZODIAC_OHANG[sign]
+    rng = random.Random(f"{d.isoformat()}-{sign}-extras")
+    return {
+        "color": rng.choice(LUCKY_COLORS[ohang]),
+        "number": rng.choice(LUCKY_NUMBERS[ohang]),
+        "direction": LUCKY_DIRECTIONS[ohang],
+    }
+
+
+def get_compatibility(sign1: str, sign2: str) -> dict:
+    """두 별자리의 오행 상생상극 기반 궁합. 순서와 무관하게 동일 결과."""
+    a, b = ZODIAC_OHANG[sign1], ZODIAC_OHANG[sign2]
+
+    if SANGSAENG.get(a) == b or SANGSAENG.get(b) == a:
+        relation = "상생"
+    elif a == b:
+        relation = "비화"
+    elif SANGGEUK.get(a) == b or SANGGEUK.get(b) == a:
+        relation = "상극"
+    else:
+        relation = "중립"
+
+    s1, s2 = sorted([sign1, sign2])
+    rng = random.Random(f"{s1}-{s2}-compat")
+    lo, hi = COMPAT_RELATIONS[relation]["score_range"]
+    return {
+        "score": rng.randint(lo, hi),
+        "relation": relation,
+        "emoji": COMPAT_RELATIONS[relation]["emoji"],
+        "description": rng.choice(COMPAT_DESC[relation]),
+    }
 
 
 def get_fortune_text(sign: str, rank: int, d: date) -> str:

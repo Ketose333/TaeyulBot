@@ -61,3 +61,19 @@ def get_yesterday_top3(history: dict) -> list[str]:
     if not entry:
         return []
     return entry["rankings"][:3]
+
+
+def get_yesterday_rankings(history: dict) -> list[str]:
+    yesterday = (kst_today() - timedelta(days=1)).isoformat()
+    entry = history.get(yesterday)
+    if not entry:
+        return []
+    return entry.get("rankings", [])
+
+
+def get_rank_delta(history: dict, sign: str, today_rank: int) -> int | None:
+    """어제 순위 - 오늘 순위. 양수=상승, 음수=하락, 0=동일, 어제 없음=None."""
+    yesterday = get_yesterday_rankings(history)
+    if sign not in yesterday:
+        return None
+    return (yesterday.index(sign) + 1) - today_rank
