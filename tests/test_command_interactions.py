@@ -248,7 +248,7 @@ async def test_compatibility_request_registers_target_and_edits_message():
 
 
 @pytest.mark.asyncio
-async def test_send_stats_defers_before_generating_chart():
+async def test_send_stats_is_public_and_defers_before_generating_chart():
     events = []
     response = SimpleNamespace(
         defer=AsyncMock(side_effect=lambda **kwargs: events.append("defer")),
@@ -278,7 +278,7 @@ async def test_send_stats_defers_before_generating_chart():
         await _send_stats(interaction, "사자자리")
 
     assert events == ["defer", "chart", "edit"]
-    response.defer.assert_awaited_once_with(ephemeral=True, thinking=True)
+    response.defer.assert_awaited_once_with(thinking=True)
 
 
 @pytest.mark.asyncio

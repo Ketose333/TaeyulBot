@@ -402,7 +402,7 @@ async def _send_stats(
     if edit:
         await interaction.response.defer()
     else:
-        await interaction.response.defer(ephemeral=True, thinking=True)
+        await interaction.response.defer(thinking=True)
 
     now = kst_now()
     stats = get_sign_stats(sign, now.year, now.month)
@@ -531,7 +531,7 @@ class StatsButton(discord.ui.Button):
             sign = await _get_registered_sign_or_reply(interaction)
             if not sign:
                 return
-            await _send_stats(interaction, sign)
+            await _send_stats(interaction, sign, user=interaction.user)
         except Exception:
             log.exception("내 통계 처리 실패: user_id=%s", interaction.user.id)
             await _send_interaction_error(interaction)
