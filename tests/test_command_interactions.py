@@ -57,6 +57,10 @@ def test_daily_embeds_share_date_and_refresh_footer():
     assert fortune.footer.text == common_footer
     assert ranking.footer.text == common_footer
     assert energy.footer.text == common_footer
+    common_description = "✨ *병오일 — 열정과 빛의 기운*"
+    assert fortune.description == common_description
+    assert ranking.description == common_description
+    assert energy.description == common_description
 
 
 def test_zodiac_labels_use_consistent_spacing_and_emphasis():

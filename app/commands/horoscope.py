@@ -67,6 +67,10 @@ def _daily_footer_text(now: datetime | None = None) -> str:
     return f"{now.strftime(DATE_FORMAT)} · {DAILY_FOOTER}"
 
 
+def _daily_theme_text(theme: str) -> str:
+    return f"✨ *{theme}*"
+
+
 def _set_daily_footer(embed: discord.Embed, now: datetime | None = None, note: str = "") -> None:
     footer = _daily_footer_text(now)
     if note:
@@ -93,7 +97,7 @@ def _build_fortune_embed(
     medal_icon = RANK_MEDALS.get(rank, "")
     embed = discord.Embed(
         title=f"{_zodiac_label(sign)} 오늘의 운세",
-        description=f"✨ *{data['theme']}*",
+        description=_daily_theme_text(data["theme"]),
         color=EMBED_COLOR,
     )
 
@@ -125,7 +129,7 @@ def _build_ranking_embed(
     now = now or kst_now()
     embed = discord.Embed(
         title=f"🔮 {now.strftime(DATE_FORMAT)} 별자리 운세 순위",
-        description=f"✨ *{data['theme']}*",
+        description=_daily_theme_text(data["theme"]),
         color=EMBED_COLOR,
     )
     lines = []
@@ -146,9 +150,10 @@ def _build_ranking_embed(
 def _build_daily_energy_embed(energy: dict, now: datetime | None = None) -> discord.Embed:
     now = now or kst_now()
     day_ohang = energy["day_ohang"]
+    theme = f"{energy['gan']}{energy['ji']}일 — {energy['desc']}"
     embed = discord.Embed(
         title=f"{OHANG_EMOJI.get(day_ohang, '✨')} {now.strftime(DATE_FORMAT)} 오늘의 기운",
-        description=f"**{energy['gan']}{energy['ji']}일** — {energy['desc']}",
+        description=_daily_theme_text(theme),
         color=EMBED_COLOR,
     )
 
