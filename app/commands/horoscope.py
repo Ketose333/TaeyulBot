@@ -139,11 +139,7 @@ def _build_ranking_embed(
         lines.append(f"{medal} {_zodiac_label(sign, bold=True)}{delta_str} — {fortune}")
 
     embed.add_field(name="", value="\n".join(lines), inline=False)
-    _set_daily_footer(
-        embed,
-        now,
-        "🔺상승 🔻하락 ― 동일 · 별자리를 선택하면 상세 운세를 볼 수 있어요",
-    )
+    _set_daily_footer(embed, now)
     return embed
 
 

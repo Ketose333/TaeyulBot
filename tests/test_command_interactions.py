@@ -55,7 +55,7 @@ def test_daily_embeds_share_date_and_refresh_footer():
 
     common_footer = "2026년 06월 12일 · KST 기준 · 매일 갱신"
     assert fortune.footer.text == common_footer
-    assert ranking.footer.text.startswith(common_footer)
+    assert ranking.footer.text == common_footer
     assert energy.footer.text == common_footer
 
 
