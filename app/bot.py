@@ -18,10 +18,11 @@ class TaeyulBot(commands.Bot):
         await self.load_extension("app.commands.horoscope")
 
         # 재시작 후에도 버튼·드랍다운이 살아있도록 persistent view 등록
-        from app.commands.horoscope import FortuneView, StatsView, RankingView
+        from app.commands.horoscope import CompatibilityInviteView, FortuneView, StatsView, RankingView
         self.add_view(FortuneView.for_persistence())
         self.add_view(StatsView())
         self.add_view(RankingView())
+        self.add_view(CompatibilityInviteView())
 
         # 글로벌 동기화 — User-Installable App으로 모든 서버·DM에서 사용 가능
         await self.tree.sync()

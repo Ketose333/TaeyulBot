@@ -10,6 +10,7 @@
 """
 
 import random
+import re
 from datetime import date
 
 # ── 별자리 목록 & 이모지 ────────────────────────────────────────────────
@@ -23,6 +24,10 @@ ZODIAC_EMOJI: dict[str, str] = {
     "사자자리": "♌", "처녀자리": "♍", "천칭자리": "♎", "전갈자리": "♏",
     "사수자리": "♐", "염소자리": "♑", "물병자리": "♒", "물고기자리": "♓",
 }
+
+BIRTHDAY_PATTERN = re.compile(
+    r"^\s*(\d{1,2})\s*(?:월|[./-])\s*(\d{1,2})\s*일?\s*$"
+)
 
 # ── 천간 (10 Heavenly Stems) ──────────────────────────────────────────
 CHEONGAN = ["갑", "을", "병", "정", "무", "기", "경", "신", "임", "계"]
@@ -299,6 +304,51 @@ def _josa(word: str, type_: str) -> str:
     if type_ == "을/를":
         return "을" if has_jongseong else "를"
     return ""
+
+
+def parse_birthday(value: str) -> tuple[int, int]:
+    """'6월 12일', '6/12', '6-12' 형식의 생일을 월·일로 변환한다."""
+    match = BIRTHDAY_PATTERN.fullmatch(value)
+    if not match:
+        raise ValueError("생일은 `6월 12일` 또는 `6/12` 형식으로 입력해주세요.")
+
+    month, day = map(int, match.groups())
+    try:
+        date(2000, month, day)
+    except ValueError as exc:
+        raise ValueError("올바른 월과 일을 입력해주세요.") from exc
+    return month, day
+
+
+def get_zodiac_by_birthday(month: int, day: int) -> str:
+    """생일의 월·일로 서양 별자리를 반환한다."""
+    try:
+        birthday = date(2000, month, day)
+    except ValueError as exc:
+        raise ValueError("올바른 월과 일을 입력해주세요.") from exc
+
+    month_day = (birthday.month, birthday.day)
+    boundaries = [
+        ((1, 20), "물병자리"),
+        ((2, 19), "물고기자리"),
+        ((3, 21), "양자리"),
+        ((4, 20), "황소자리"),
+        ((5, 21), "쌍둥이자리"),
+        ((6, 22), "게자리"),
+        ((7, 23), "사자자리"),
+        ((8, 23), "처녀자리"),
+        ((9, 23), "천칭자리"),
+        ((10, 23), "전갈자리"),
+        ((11, 23), "사수자리"),
+        ((12, 22), "염소자리"),
+    ]
+    sign = "염소자리"
+    for boundary, boundary_sign in boundaries:
+        if month_day >= boundary:
+            sign = boundary_sign
+        else:
+            break
+    return sign
 
 
 def _rank_to_grade(rank: int) -> str:

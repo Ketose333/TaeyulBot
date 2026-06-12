@@ -6,6 +6,7 @@ from unittest.mock import AsyncMock, patch
 import pytest
 
 from app.commands.horoscope import (
+    CompatibilityInviteView,
     HoroscopeCog,
     _build_compatibility_embed,
     _build_daily_energy_embed,
@@ -14,6 +15,9 @@ from app.commands.horoscope import (
     _build_profile_embed,
     _build_ranking_embed,
     _build_stats_embed,
+    _compatibility_request_content,
+    _compatibility_request_ids,
+    _complete_compatibility_request,
     _send_interaction_error,
     _send_stats,
     _registered_sign_message,
@@ -31,7 +35,9 @@ def test_all_commands_and_zodiac_choices_are_registered():
 
     assert set(commands) == {"별자리순위", "별자리운세", "내별자리", "궁합", "리더보드", "오늘의기운"}
     assert len(commands["별자리운세"].parameters[0].choices) == 12
-    assert len(commands["내별자리"].parameters[0].choices) == 12
+    assert [(parameter.name, len(parameter.choices)) for parameter in commands["내별자리"].parameters] == [
+        ("별자리", 12), ("생일", 0),
+    ]
     assert [len(parameter.choices) for parameter in commands["궁합"].parameters] == [0, 12, 12]
 
 
@@ -159,6 +165,86 @@ def test_compatibility_embed_uses_standard_zodiac_labels():
     )
 
     assert embed.description == "**♌ 사자자리 (사용자1)**  ×  **♒ 물병자리 (사용자2)**"
+
+
+def test_compatibility_invite_view_is_persistent():
+    view = CompatibilityInviteView()
+
+    assert view.timeout is None
+    assert {item.custom_id for item in view.children} == {
+        "yh:compat_sign",
+        "yh:compat_birthday",
+    }
+
+
+def test_compatibility_request_ids_follow_content_order():
+    message = SimpleNamespace(content=_compatibility_request_content(100, 200))
+
+    assert _compatibility_request_ids(message) == (100, 200)
+
+
+@pytest.mark.asyncio
+async def test_compatibility_request_only_allows_target():
+    message = SimpleNamespace(
+        content=_compatibility_request_content(100, 200),
+        mentions=[],
+    )
+    interaction = SimpleNamespace(
+        message=message,
+        user=SimpleNamespace(id=300, display_name="다른 사람"),
+        response=SimpleNamespace(send_message=AsyncMock()),
+    )
+
+    await _complete_compatibility_request(interaction, "사자자리")
+
+    interaction.response.send_message.assert_awaited_once_with(
+        "궁합 요청을 받은 상대만 등록할 수 있어요.",
+        ephemeral=True,
+    )
+
+
+@pytest.mark.asyncio
+async def test_compatibility_request_registers_target_and_edits_message():
+    requester = SimpleNamespace(id=100, display_name="요청자")
+    target = SimpleNamespace(id=200, display_name="상대")
+    message = SimpleNamespace(
+        content=_compatibility_request_content(requester.id, target.id),
+        mentions=[requester, target],
+        edit=AsyncMock(),
+    )
+    interaction = SimpleNamespace(
+        message=message,
+        user=target,
+        guild=None,
+        client=SimpleNamespace(
+            user=SimpleNamespace(id=999),
+            get_user=lambda user_id: requester if user_id == requester.id else None,
+        ),
+        response=SimpleNamespace(defer=AsyncMock()),
+        followup=SimpleNamespace(send=AsyncMock()),
+    )
+
+    with (
+        patch("app.commands.horoscope.get_zodiac", return_value="사자자리"),
+        patch("app.commands.horoscope.set_zodiac") as set_zodiac,
+        patch(
+            "app.commands.horoscope.get_compatibility",
+            return_value={
+                "emoji": "⚡", "score": 55, "relation": "상극", "description": "테스트 풀이",
+            },
+        ),
+    ):
+        await _complete_compatibility_request(interaction, "물병자리")
+
+    set_zodiac.assert_called_once_with(target.id, "물병자리")
+    interaction.response.defer.assert_awaited_once_with(ephemeral=True)
+    message.edit.assert_awaited_once()
+    assert message.edit.await_args.kwargs["content"] is None
+    assert message.edit.await_args.kwargs["view"] is None
+    interaction.followup.send.assert_awaited_once_with(
+        "**♒ 물병자리**로 등록했어요!",
+        ephemeral=True,
+    )
 
 
 @pytest.mark.asyncio

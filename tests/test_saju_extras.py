@@ -4,7 +4,9 @@ from app.utils.saju_engine import (
     get_compatibility,
     get_daily_energy,
     get_daily_theme,
+    get_zodiac_by_birthday,
     get_lucky_extras,
+    parse_birthday,
     _josa,
     ZODIAC_SIGNS,
     ZODIAC_OHANG,
@@ -12,6 +14,8 @@ from app.utils.saju_engine import (
     LUCKY_NUMBERS,
     LUCKY_DIRECTIONS,
 )
+
+import pytest
 
 
 # ── 행운 요소 ─────────────────────────────────────────────────────────
@@ -81,3 +85,35 @@ def test_daily_energy_reuses_daily_theme():
     d = date(2026, 6, 12)
 
     assert get_daily_energy(d)["theme"] == get_daily_theme(d)
+
+
+@pytest.mark.parametrize(
+    ("month", "day", "sign"),
+    [
+        (1, 19, "염소자리"), (1, 20, "물병자리"),
+        (2, 18, "물병자리"), (2, 19, "물고기자리"),
+        (3, 20, "물고기자리"), (3, 21, "양자리"),
+        (4, 19, "양자리"), (4, 20, "황소자리"),
+        (5, 20, "황소자리"), (5, 21, "쌍둥이자리"),
+        (6, 21, "쌍둥이자리"), (6, 22, "게자리"),
+        (7, 22, "게자리"), (7, 23, "사자자리"),
+        (8, 22, "사자자리"), (8, 23, "처녀자리"),
+        (9, 22, "처녀자리"), (9, 23, "천칭자리"),
+        (10, 22, "천칭자리"), (10, 23, "전갈자리"),
+        (11, 22, "전갈자리"), (11, 23, "사수자리"),
+        (12, 21, "사수자리"), (12, 22, "염소자리"),
+    ],
+)
+def test_zodiac_by_birthday_boundaries(month, day, sign):
+    assert get_zodiac_by_birthday(month, day) == sign
+
+
+@pytest.mark.parametrize("value", ["6월 12일", "6/12", "6-12", "6.12"])
+def test_parse_birthday_supported_formats(value):
+    assert parse_birthday(value) == (6, 12)
+
+
+@pytest.mark.parametrize("value", ["생일", "2/30", "13월 1일"])
+def test_parse_birthday_rejects_invalid_values(value):
+    with pytest.raises(ValueError):
+        parse_birthday(value)

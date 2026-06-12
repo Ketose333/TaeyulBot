@@ -3,6 +3,7 @@ from __future__ import annotations
 import asyncio
 import logging
 import os
+import re
 from datetime import datetime
 
 import discord
@@ -11,7 +12,15 @@ from discord.ext import commands
 
 from app.services.horoscope_service import get_today_fortune, get_sign_fortune
 from app.services.stats_service import get_sign_stats, get_leaderboard
-from app.utils.saju_engine import ZODIAC_SIGNS, ZODIAC_EMOJI, _josa, get_compatibility, get_daily_energy
+from app.utils.saju_engine import (
+    ZODIAC_SIGNS,
+    ZODIAC_EMOJI,
+    _josa,
+    get_compatibility,
+    get_daily_energy,
+    get_zodiac_by_birthday,
+    parse_birthday,
+)
 from app.utils.stats_chart import generate_rank_chart
 from app.utils.user_store import get_zodiac, set_zodiac, load_all
 from app.utils.date_utils import kst_now, get_history, get_yesterday_rankings
@@ -37,6 +46,9 @@ _CID_STATS_BTN      = "yh:stats_btn"
 _CID_PROFILE_BTN    = "yh:profile_btn"
 _CID_JAL_1          = "yh:jal_1"
 _CID_JAL_12         = "yh:jal_12"
+_CID_COMPAT_SIGN    = "yh:compat_sign"
+_CID_COMPAT_BDAY    = "yh:compat_birthday"
+_COMPAT_MENTION_PATTERN = re.compile(r"<@!?(\d+)>")
 
 
 # ── 헬퍼 ──────────────────────────────────────────────────────────────────────
@@ -90,6 +102,36 @@ def _unregistered_user_message(display_name: str) -> str:
 
 def _registered_sign_message(sign: str) -> str:
     return f"{_zodiac_label(sign, bold=True)}로 등록했어요!"
+
+
+def _sign_from_birthday(value: str) -> str:
+    month, day = parse_birthday(value)
+    return get_zodiac_by_birthday(month, day)
+
+
+def _compatibility_request_content(requester_id: int, target_id: int) -> str:
+    return f"<@{target_id}>님, <@{requester_id}>님이 궁합을 요청했어요!"
+
+
+def _compatibility_request_ids(message: discord.Message) -> tuple[int, int] | None:
+    user_ids = [int(user_id) for user_id in _COMPAT_MENTION_PATTERN.findall(message.content)]
+    if len(user_ids) < 2:
+        return None
+    target_id, requester_id = user_ids[:2]
+    return requester_id, target_id
+
+
+def _message_user_name(
+    interaction: discord.Interaction,
+    message: discord.Message,
+    user_id: int,
+) -> str:
+    user = next((mentioned for mentioned in message.mentions if mentioned.id == user_id), None)
+    if not user and interaction.guild:
+        user = interaction.guild.get_member(user_id)
+    if not user:
+        user = interaction.client.get_user(user_id)
+    return user.display_name if user else f"이용자 {user_id}"
 
 
 async def _get_registered_sign_or_reply(interaction: discord.Interaction) -> str | None:
@@ -271,6 +313,14 @@ def _build_compatibility_embed(
     return embed
 
 
+def _build_compatibility_invite_embed(target_name: str) -> discord.Embed:
+    return _new_embed(
+        "💌 궁합 요청",
+        f"**{target_name}**님이 별자리를 등록하면 궁합을 바로 보여드려요.\n"
+        "아래에서 별자리를 선택하거나 생일로 등록해주세요.",
+    )
+
+
 def _build_leaderboard_embed(
     scope: str,
     board: list[dict],
@@ -293,6 +343,54 @@ def _build_leaderboard_embed(
         )
     embed.add_field(name="", value="\n".join(lines), inline=False)
     return embed
+
+
+async def _complete_compatibility_request(
+    interaction: discord.Interaction,
+    sign: str,
+    message: discord.Message | None = None,
+) -> None:
+    message = message or interaction.message
+    request_ids = _compatibility_request_ids(message) if message else None
+    if not message or not request_ids:
+        await interaction.response.send_message(
+            "궁합 요청 정보를 찾을 수 없습니다. `/궁합`으로 다시 요청해주세요.",
+            ephemeral=True,
+        )
+        return
+
+    requester_id, target_id = request_ids
+    if interaction.user.id != target_id:
+        await interaction.response.send_message(
+            "궁합 요청을 받은 상대만 등록할 수 있어요.",
+            ephemeral=True,
+        )
+        return
+
+    requester_sign = get_zodiac(requester_id)
+    if not requester_sign:
+        await interaction.response.send_message(
+            "요청자의 별자리 정보를 찾을 수 없습니다. `/궁합`으로 다시 요청해주세요.",
+            ephemeral=True,
+        )
+        return
+
+    await interaction.response.defer(ephemeral=True)
+    set_zodiac(target_id, sign)
+    result = get_compatibility(requester_sign, sign)
+    embed = _build_compatibility_embed(
+        requester_sign,
+        sign,
+        result,
+        _message_user_name(interaction, message, requester_id),
+        interaction.user.display_name,
+        bot_match=(
+            requester_id == interaction.client.user.id
+            or target_id == interaction.client.user.id
+        ),
+    )
+    await message.edit(content=None, embed=embed, view=None)
+    await interaction.followup.send(_registered_sign_message(sign), ephemeral=True)
 
 
 async def _send_stats(
@@ -463,6 +561,81 @@ class ProfileButton(discord.ui.Button):
             await _send_interaction_error(interaction)
 
 
+class CompatibilitySignSelect(discord.ui.Select):
+    def __init__(self):
+        super().__init__(
+            custom_id=_CID_COMPAT_SIGN,
+            placeholder="내 별자리 선택하기",
+            options=_zodiac_select_options(),
+            min_values=1,
+            max_values=1,
+        )
+
+    async def callback(self, interaction: discord.Interaction) -> None:
+        try:
+            await _complete_compatibility_request(interaction, self.values[0])
+        except Exception:
+            log.exception("궁합 요청 별자리 등록 실패: user_id=%s", interaction.user.id)
+            await _send_interaction_error(interaction)
+
+
+class BirthdayRegistrationModal(discord.ui.Modal):
+    def __init__(self, message: discord.Message):
+        super().__init__(title="생일로 별자리 등록")
+        self.source_message = message
+        self.birthday = discord.ui.TextInput(
+            label="생일",
+            placeholder="예: 6월 12일 또는 6/12",
+            min_length=3,
+            max_length=10,
+        )
+        self.add_item(self.birthday)
+
+    async def on_submit(self, interaction: discord.Interaction) -> None:
+        try:
+            sign = _sign_from_birthday(self.birthday.value)
+        except ValueError as exc:
+            await interaction.response.send_message(str(exc), ephemeral=True)
+            return
+
+        try:
+            await _complete_compatibility_request(
+                interaction,
+                sign,
+                message=self.source_message,
+            )
+        except Exception:
+            log.exception("궁합 요청 생일 등록 실패: user_id=%s", interaction.user.id)
+            await _send_interaction_error(interaction)
+
+
+class CompatibilityBirthdayButton(discord.ui.Button):
+    def __init__(self):
+        super().__init__(
+            label="생일로 등록",
+            style=discord.ButtonStyle.primary,
+            custom_id=_CID_COMPAT_BDAY,
+        )
+
+    async def callback(self, interaction: discord.Interaction) -> None:
+        message = interaction.message
+        request_ids = _compatibility_request_ids(message) if message else None
+        if not message or not request_ids:
+            await interaction.response.send_message(
+                "궁합 요청 정보를 찾을 수 없습니다. `/궁합`으로 다시 요청해주세요.",
+                ephemeral=True,
+            )
+            return
+        _, target_id = request_ids
+        if interaction.user.id != target_id:
+            await interaction.response.send_message(
+                "궁합 요청을 받은 상대만 등록할 수 있어요.",
+                ephemeral=True,
+            )
+            return
+        await interaction.response.send_modal(BirthdayRegistrationModal(message))
+
+
 class JalButton(discord.ui.Button):
     def __init__(self, rank: int):
         super().__init__(
@@ -521,6 +694,13 @@ class RankingView(discord.ui.View):
     def __init__(self):
         super().__init__(timeout=None)
         self.add_item(RankingSignSelect())
+
+
+class CompatibilityInviteView(discord.ui.View):
+    def __init__(self):
+        super().__init__(timeout=None)
+        self.add_item(CompatibilitySignSelect())
+        self.add_item(CompatibilityBirthdayButton())
 
 
 # ── Cog ───────────────────────────────────────────────────────────────────────
@@ -592,12 +772,33 @@ class HoroscopeCog(commands.Cog):
             view=FortuneView(별자리, data["rank"]),
         )
 
-    @app_commands.command(name="내별자리", description="나의 별자리를 등록합니다. 통계와 프로필에 사용됩니다.")
+    @app_commands.command(name="내별자리", description="별자리 선택이나 생일 입력으로 나의 별자리를 등록합니다.")
     @app_commands.allowed_installs(guilds=True, users=True)
     @app_commands.allowed_contexts(guilds=True, dms=True, private_channels=True)
-    @app_commands.describe(별자리="등록할 별자리를 선택하세요")
+    @app_commands.describe(
+        별자리="등록할 별자리를 선택하세요",
+        생일="생일로 자동 계산 (예: 6월 12일 또는 6/12)",
+    )
     @app_commands.choices(별자리=ZODIAC_CHOICES)
-    async def set_my_sign(self, interaction: discord.Interaction, 별자리: str) -> None:
+    async def set_my_sign(
+        self,
+        interaction: discord.Interaction,
+        별자리: str | None = None,
+        생일: str | None = None,
+    ) -> None:
+        if bool(별자리) == bool(생일):
+            await interaction.response.send_message(
+                "`별자리` 또는 `생일` 중 하나만 입력해주세요.",
+                ephemeral=True,
+            )
+            return
+
+        if 생일:
+            try:
+                별자리 = _sign_from_birthday(생일)
+            except ValueError as exc:
+                await interaction.response.send_message(str(exc), ephemeral=True)
+                return
         if 별자리 not in ZODIAC_SIGNS:
             await interaction.response.send_message(INVALID_SIGN_MESSAGE, ephemeral=True)
             return
@@ -630,8 +831,28 @@ class HoroscopeCog(commands.Cog):
                 return
             sign2 = get_zodiac(상대.id)
             if not sign2:
+                if 상대.bot:
+                    await interaction.response.send_message(
+                        _unregistered_user_message(상대.display_name),
+                        ephemeral=True,
+                    )
+                    return
+                if interaction.guild is None:
+                    await interaction.response.send_message(
+                        "미등록 상대에게 궁합을 요청하려면 함께 있는 서버 채널에서 사용해주세요.",
+                        ephemeral=True,
+                    )
+                    return
                 await interaction.response.send_message(
-                    _unregistered_user_message(상대.display_name), ephemeral=True
+                    content=_compatibility_request_content(interaction.user.id, 상대.id),
+                    embed=_build_compatibility_invite_embed(상대.display_name),
+                    view=CompatibilityInviteView(),
+                    allowed_mentions=discord.AllowedMentions(
+                        users=[상대],
+                        roles=False,
+                        everyone=False,
+                        replied_user=False,
+                    ),
                 )
                 return
             name1 = interaction.user.display_name
