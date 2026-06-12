@@ -393,6 +393,7 @@ def get_daily_energy(d: date) -> dict:
         "ji": ji,
         "day_ohang": day_ohang,
         "desc": CHEONGAN_DESC[gan],
+        "theme": get_daily_theme(d),
         "blessed": blessed,
         "challenged": challenged,
     }

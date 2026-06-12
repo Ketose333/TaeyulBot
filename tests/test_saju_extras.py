@@ -2,6 +2,8 @@ from datetime import date
 
 from app.utils.saju_engine import (
     get_compatibility,
+    get_daily_energy,
+    get_daily_theme,
     get_lucky_extras,
     _josa,
     ZODIAC_SIGNS,
@@ -73,3 +75,9 @@ def test_josa_for_five_elements():
     assert {ohang: _josa(ohang, "이/가") for ohang in "목화토금수"} == {
         "목": "이", "화": "가", "토": "가", "금": "이", "수": "가",
     }
+
+
+def test_daily_energy_reuses_daily_theme():
+    d = date(2026, 6, 12)
+
+    assert get_daily_energy(d)["theme"] == get_daily_theme(d)

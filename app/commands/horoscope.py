@@ -22,8 +22,11 @@ ASSETS_DIR   = os.path.join(os.path.dirname(__file__), "..", "..", "assets")
 DATE_FORMAT  = "%Y년 %m월 %d일"
 DAILY_FOOTER = "KST 기준 · 매일 갱신"
 OHANG_EMOJI  = {"목": "🌿", "화": "🔥", "토": "🪨", "금": "⚙️", "수": "💧"}
+INVALID_SIGN_MESSAGE = "올바른 별자리를 선택해주세요."
+REGISTER_SIGN_MESSAGE = "`/내별자리`로 별자리를 먼저 등록해주세요."
 log = logging.getLogger(__name__)
 _CHART_LOCK = asyncio.Lock()
+ZODIAC_CHOICES = [app_commands.Choice(name=sign, value=sign) for sign in ZODIAC_SIGNS]
 
 # Persistent view를 위한 static custom_id 상수
 _CID_FORTUNE_SELECT = "yh:fortune_select"
@@ -62,6 +65,37 @@ def _zodiac_label(sign: str, *, bold: bool = False) -> str:
     return f"**{label}**" if bold else label
 
 
+def _month_label(year: int, month: int) -> str:
+    return f"{year}년 {month}월"
+
+
+def _new_embed(title: str, description: str | None = None) -> discord.Embed:
+    return discord.Embed(title=title, description=description, color=EMBED_COLOR)
+
+
+def _zodiac_select_options(current_sign: str | None = None) -> list[discord.SelectOption]:
+    return [
+        discord.SelectOption(
+            label=sign,
+            emoji=ZODIAC_EMOJI.get(sign, "⭐"),
+            default=(sign == current_sign),
+        )
+        for sign in ZODIAC_SIGNS
+    ]
+
+
+def _unregistered_user_message(display_name: str) -> str:
+    return f"**{display_name}**님은 별자리가 등록되어 있지 않습니다."
+
+
+async def _get_registered_sign_or_reply(interaction: discord.Interaction) -> str | None:
+    sign = get_zodiac(interaction.user.id)
+    if sign:
+        return sign
+    await interaction.response.send_message(REGISTER_SIGN_MESSAGE, ephemeral=True)
+    return None
+
+
 def _daily_footer_text(now: datetime | None = None) -> str:
     now = now or kst_now()
     return f"{now.strftime(DATE_FORMAT)} · {DAILY_FOOTER}"
@@ -71,11 +105,8 @@ def _daily_theme_text(theme: str) -> str:
     return f"✨ *{theme}*"
 
 
-def _set_daily_footer(embed: discord.Embed, now: datetime | None = None, note: str = "") -> None:
-    footer = _daily_footer_text(now)
-    if note:
-        footer = f"{footer} · {note}"
-    embed.set_footer(text=footer)
+def _set_daily_footer(embed: discord.Embed, now: datetime | None = None) -> None:
+    embed.set_footer(text=_daily_footer_text(now))
 
 
 async def _send_interaction_error(
@@ -95,10 +126,9 @@ def _build_fortune_embed(
 ) -> discord.Embed:
     rank = data["rank"]
     medal_icon = RANK_MEDALS.get(rank, "")
-    embed = discord.Embed(
-        title=f"{_zodiac_label(sign)} 오늘의 운세",
-        description=_daily_theme_text(data["theme"]),
-        color=EMBED_COLOR,
+    embed = _new_embed(
+        f"{_zodiac_label(sign)} 오늘의 운세",
+        _daily_theme_text(data["theme"]),
     )
 
     delta_label = _delta_label(data.get("rank_delta"))
@@ -127,10 +157,9 @@ def _build_ranking_embed(
     now: datetime | None = None,
 ) -> discord.Embed:
     now = now or kst_now()
-    embed = discord.Embed(
-        title=f"🔮 {now.strftime(DATE_FORMAT)} 별자리 운세 순위",
-        description=_daily_theme_text(data["theme"]),
-        color=EMBED_COLOR,
+    embed = _new_embed(
+        f"🔮 {now.strftime(DATE_FORMAT)} 별자리 운세 순위",
+        _daily_theme_text(data["theme"]),
     )
     lines = []
     for i, sign in enumerate(data["rankings"]):
@@ -150,11 +179,9 @@ def _build_ranking_embed(
 def _build_daily_energy_embed(energy: dict, now: datetime | None = None) -> discord.Embed:
     now = now or kst_now()
     day_ohang = energy["day_ohang"]
-    theme = f"{energy['gan']}{energy['ji']}일 — {energy['desc']}"
-    embed = discord.Embed(
-        title=f"{OHANG_EMOJI.get(day_ohang, '✨')} {now.strftime(DATE_FORMAT)} 오늘의 기운",
-        description=_daily_theme_text(theme),
-        color=EMBED_COLOR,
+    embed = _new_embed(
+        f"{OHANG_EMOJI.get(day_ohang, '✨')} {now.strftime(DATE_FORMAT)} 오늘의 기운",
+        _daily_theme_text(energy["theme"]),
     )
 
     if energy["blessed"]:
@@ -180,12 +207,10 @@ def _build_stats_embed(
     stats: dict,
     sign: str,
     user: discord.User | discord.Member | None = None,
+    now: datetime | None = None,
 ) -> discord.Embed:
-    now = kst_now()
-    embed = discord.Embed(
-        title=f"{_zodiac_label(sign)} · {now.year}년 {now.month}월 통계",
-        color=EMBED_COLOR,
-    )
+    now = now or kst_now()
+    embed = _new_embed(f"{_zodiac_label(sign)} · {_month_label(now.year, now.month)} 통계")
     if user:
         embed.set_author(name=f"{user.display_name}의 통계", icon_url=user.display_avatar.url)
     if stats["total_days"] == 0:
@@ -202,6 +227,70 @@ def _build_stats_embed(
     return embed
 
 
+def _build_profile_embed(
+    user: discord.User | discord.Member,
+    sign: str,
+    stats: dict,
+) -> discord.Embed:
+    embed = _new_embed(f"{user.display_name}의 프로필")
+    embed.add_field(name="별자리", value=_zodiac_label(sign, bold=True), inline=True)
+    if stats["total_days"] > 0:
+        embed.add_field(name="이달 평균 순위", value=f"**{stats['avg_rank']}위**", inline=True)
+        embed.add_field(name="이달 1위", value=f"**{stats['rank_1_count']}회**", inline=True)
+        recent = stats["daily"][-7:]
+        if recent:
+            timeline = " → ".join(str(rank) for _, rank in recent) + "위"
+            embed.add_field(name="최근 7일 순위", value=timeline, inline=False)
+    embed.set_thumbnail(url=user.display_avatar.url)
+    return embed
+
+
+def _build_compatibility_embed(
+    sign1: str,
+    sign2: str,
+    result: dict,
+    name1: str | None = None,
+    name2: str | None = None,
+    bot_match: bool = False,
+) -> discord.Embed:
+    label1 = _zodiac_label(sign1) + (f" ({name1})" if name1 else "")
+    label2 = _zodiac_label(sign2) + (f" ({name2})" if name2 else "")
+    embed = _new_embed(
+        f"{result['emoji']} 궁합 결과",
+        f"**{label1}**  ×  **{label2}**",
+    )
+    embed.add_field(name="궁합 점수", value=f"**{result['score']}점** / 100", inline=True)
+    embed.add_field(name="관계", value=f"**{result['relation']}**", inline=True)
+    embed.add_field(name="풀이", value=result["description"], inline=False)
+    if bot_match:
+        embed.set_footer(text="🤖 한태율 (2026년 6월 12일생 · ♊ 쌍둥이자리)")
+    return embed
+
+
+def _build_leaderboard_embed(
+    scope: str,
+    board: list[dict],
+    people: dict[int, str],
+    now: datetime,
+) -> discord.Embed:
+    embed = _new_embed(
+        f"🏆 {scope} 리더보드 — {_month_label(now.year, now.month)}",
+        "이달 평균 순위가 좋은 순서입니다.",
+    )
+    lines = []
+    for i, entry in enumerate(board[:10]):
+        rank = i + 1
+        medal = RANK_MEDALS.get(rank, f"`{rank}.`")
+        name = people.get(entry["user_id"], f"이용자 {entry['user_id']}")
+        lines.append(
+            f"{medal} **{name}** · {_zodiac_label(entry['sign'])} · "
+            f"평균 **{entry['avg_rank']}위** "
+            f"(1위 {entry['rank_1_count']}회 · {entry['total_days']}일)"
+        )
+    embed.add_field(name="", value="\n".join(lines), inline=False)
+    return embed
+
+
 async def _send_stats(
     interaction: discord.Interaction,
     sign: str,
@@ -215,7 +304,7 @@ async def _send_stats(
 
     now = kst_now()
     stats = get_sign_stats(sign, now.year, now.month)
-    embed = _build_stats_embed(stats, sign, user=user)
+    embed = _build_stats_embed(stats, sign, user=user, now=now)
     view = StatsView(current_sign=sign)
 
     if stats["daily"]:
@@ -232,18 +321,10 @@ async def _send_stats(
 
 class SignFortuneSelect(discord.ui.Select):
     def __init__(self, current_sign: str | None = None):
-        options = [
-            discord.SelectOption(
-                label=s,
-                emoji=ZODIAC_EMOJI.get(s, "⭐"),
-                default=(s == current_sign),
-            )
-            for s in ZODIAC_SIGNS
-        ]
         super().__init__(
             custom_id=_CID_FORTUNE_SELECT,
             placeholder="다른 별자리 운세 보기",
-            options=options,
+            options=_zodiac_select_options(current_sign),
             min_values=1,
             max_values=1,
         )
@@ -264,18 +345,10 @@ class SignFortuneSelect(discord.ui.Select):
 
 class SignStatsSelect(discord.ui.Select):
     def __init__(self, current_sign: str | None = None):
-        options = [
-            discord.SelectOption(
-                label=s,
-                emoji=ZODIAC_EMOJI.get(s, "⭐"),
-                default=(s == current_sign),
-            )
-            for s in ZODIAC_SIGNS
-        ]
         super().__init__(
             custom_id=_CID_STATS_SELECT,
             placeholder="다른 별자리 통계 보기",
-            options=options,
+            options=_zodiac_select_options(current_sign),
             min_values=1,
             max_values=1,
         )
@@ -303,7 +376,7 @@ class OtherUserSelect(discord.ui.UserSelect):
         sign = get_zodiac(target.id)
         if not sign:
             await interaction.response.send_message(
-                f"**{target.display_name}**님은 별자리가 등록되어 있지 않습니다.",
+                _unregistered_user_message(target.display_name),
                 ephemeral=True,
             )
             return
@@ -323,10 +396,7 @@ class RankingSignSelect(discord.ui.Select):
         super().__init__(
             custom_id=_CID_RANKING_SELECT,
             placeholder="별자리를 선택해 운세 자세히 보기",
-            options=[
-                discord.SelectOption(label=s, emoji=ZODIAC_EMOJI.get(s, "⭐"))
-                for s in ZODIAC_SIGNS
-            ],
+            options=_zodiac_select_options(),
             min_values=1,
             max_values=1,
         )
@@ -356,11 +426,8 @@ class StatsButton(discord.ui.Button):
 
     async def callback(self, interaction: discord.Interaction) -> None:
         try:
-            sign = get_zodiac(interaction.user.id)
+            sign = await _get_registered_sign_or_reply(interaction)
             if not sign:
-                await interaction.response.send_message(
-                    "`/내별자리`로 별자리를 먼저 등록해주세요.", ephemeral=True
-                )
                 return
             await _send_stats(interaction, sign)
         except Exception:
@@ -378,28 +445,15 @@ class ProfileButton(discord.ui.Button):
 
     async def callback(self, interaction: discord.Interaction) -> None:
         try:
-            sign = get_zodiac(interaction.user.id)
+            sign = await _get_registered_sign_or_reply(interaction)
             if not sign:
-                await interaction.response.send_message(
-                    "`/내별자리`로 별자리를 먼저 등록해주세요.", ephemeral=True
-                )
                 return
             now = kst_now()
             stats = get_sign_stats(sign, now.year, now.month)
-            embed = discord.Embed(
-                title=f"{interaction.user.display_name}의 프로필",
-                color=EMBED_COLOR,
+            await interaction.response.send_message(
+                embed=_build_profile_embed(interaction.user, sign, stats),
+                ephemeral=True,
             )
-            embed.add_field(name="별자리", value=_zodiac_label(sign, bold=True), inline=True)
-            if stats["total_days"] > 0:
-                embed.add_field(name="이달 평균 순위", value=f"**{stats['avg_rank']}위**", inline=True)
-                embed.add_field(name="이달 1위", value=f"**{stats['rank_1_count']}회**", inline=True)
-                recent = stats["daily"][-7:]
-                if recent:
-                    timeline = " → ".join(f"{r}" for _, r in recent) + "위"
-                    embed.add_field(name="최근 7일 순위", value=timeline, inline=False)
-            embed.set_thumbnail(url=interaction.user.display_avatar.url)
-            await interaction.response.send_message(embed=embed, ephemeral=True)
         except Exception:
             log.exception("프로필 처리 실패: user_id=%s", interaction.user.id)
             await _send_interaction_error(interaction)
@@ -508,9 +562,7 @@ class HoroscopeCog(commands.Cog):
     @app_commands.allowed_installs(guilds=True, users=True)
     @app_commands.allowed_contexts(guilds=True, dms=True, private_channels=True)
     @app_commands.describe(별자리="운세를 확인할 별자리 (미입력 시 등록된 별자리 사용)")
-    @app_commands.choices(
-        별자리=[app_commands.Choice(name=s, value=s) for s in ZODIAC_SIGNS]
-    )
+    @app_commands.choices(별자리=ZODIAC_CHOICES)
     async def sign_fortune(self, interaction: discord.Interaction, 별자리: str | None = None) -> None:
         await interaction.response.defer(thinking=True)
         if 별자리 is None:
@@ -522,7 +574,7 @@ class HoroscopeCog(commands.Cog):
                 )
                 return
         if 별자리 not in ZODIAC_SIGNS:
-            await interaction.followup.send("올바른 별자리를 선택해주세요.", ephemeral=True)
+            await interaction.followup.send(INVALID_SIGN_MESSAGE, ephemeral=True)
             return
         try:
             data = get_sign_fortune(별자리)
@@ -540,12 +592,10 @@ class HoroscopeCog(commands.Cog):
     @app_commands.allowed_installs(guilds=True, users=True)
     @app_commands.allowed_contexts(guilds=True, dms=True, private_channels=True)
     @app_commands.describe(별자리="등록할 별자리를 선택하세요")
-    @app_commands.choices(
-        별자리=[app_commands.Choice(name=s, value=s) for s in ZODIAC_SIGNS]
-    )
+    @app_commands.choices(별자리=ZODIAC_CHOICES)
     async def set_my_sign(self, interaction: discord.Interaction, 별자리: str) -> None:
         if 별자리 not in ZODIAC_SIGNS:
-            await interaction.response.send_message("올바른 별자리를 선택해주세요.", ephemeral=True)
+            await interaction.response.send_message(INVALID_SIGN_MESSAGE, ephemeral=True)
             return
         set_zodiac(interaction.user.id, 별자리)
         await interaction.response.send_message(
@@ -562,10 +612,7 @@ class HoroscopeCog(commands.Cog):
         별자리1="직접 지정할 첫 번째 별자리",
         별자리2="직접 지정할 두 번째 별자리",
     )
-    @app_commands.choices(
-        별자리1=[app_commands.Choice(name=s, value=s) for s in ZODIAC_SIGNS],
-        별자리2=[app_commands.Choice(name=s, value=s) for s in ZODIAC_SIGNS],
-    )
+    @app_commands.choices(별자리1=ZODIAC_CHOICES, 별자리2=ZODIAC_CHOICES)
     async def compatibility(
         self,
         interaction: discord.Interaction,
@@ -575,16 +622,13 @@ class HoroscopeCog(commands.Cog):
     ) -> None:
         # 해석 우선순위: ① 상대 지정 → 양쪽 등록 별자리, ② 별자리1+2 직접 지정
         if 상대 is not None:
-            sign1 = get_zodiac(interaction.user.id)
-            sign2 = get_zodiac(상대.id)
+            sign1 = await _get_registered_sign_or_reply(interaction)
             if not sign1:
-                await interaction.response.send_message(
-                    "`/내별자리`로 본인 별자리를 먼저 등록해주세요.", ephemeral=True
-                )
                 return
+            sign2 = get_zodiac(상대.id)
             if not sign2:
                 await interaction.response.send_message(
-                    f"**{상대.display_name}**님은 별자리가 등록되어 있지 않습니다.", ephemeral=True
+                    _unregistered_user_message(상대.display_name), ephemeral=True
                 )
                 return
             name1 = interaction.user.display_name
@@ -599,20 +643,16 @@ class HoroscopeCog(commands.Cog):
             return
 
         result = get_compatibility(sign1, sign2)
-        label1 = _zodiac_label(sign1) + (f" ({name1})" if name1 else "")
-        label2 = _zodiac_label(sign2) + (f" ({name2})" if name2 else "")
-
-        embed = discord.Embed(
-            title=f"{result['emoji']} 궁합 결과",
-            description=f"**{label1}**  ×  **{label2}**",
-            color=EMBED_COLOR,
+        await interaction.response.send_message(
+            embed=_build_compatibility_embed(
+                sign1,
+                sign2,
+                result,
+                name1,
+                name2,
+                bot_match=상대 is not None and 상대.id == interaction.client.user.id,
+            )
         )
-        embed.add_field(name="궁합 점수", value=f"**{result['score']}점** / 100", inline=True)
-        embed.add_field(name="관계", value=f"**{result['relation']}**", inline=True)
-        embed.add_field(name="풀이", value=result["description"], inline=False)
-        if 상대 is not None and 상대.id == interaction.client.user.id:
-            embed.set_footer(text="🤖 한태율 (2026년 6월 12일생 · ♊ 쌍둥이자리)")
-        await interaction.response.send_message(embed=embed)
 
     @app_commands.command(name="리더보드", description="이달 평균 순위가 가장 좋은 이용자들을 보여줍니다.")
     @app_commands.allowed_installs(guilds=True, users=True)
@@ -649,24 +689,13 @@ class HoroscopeCog(commands.Cog):
             return
 
         scope = guild.name if guild is not None else "전체"
-        embed = discord.Embed(
-            title=f"🏆 {scope} 리더보드 — {now.year}년 {now.month}월",
-            description="이달 평균 순위가 좋은 순서입니다.",
-            color=EMBED_COLOR,
-        )
-        lines = []
-        for i, e in enumerate(board[:10]):
-            rank = i + 1
-            medal = RANK_MEDALS.get(rank, f"`{rank}.`")
-            person = (guild.get_member(e["user_id"]) if guild is not None
-                      else interaction.client.get_user(e["user_id"]))
-            name = person.display_name if person else f"이용자 {e['user_id']}"
-            lines.append(
-                f"{medal} **{name}** · {_zodiac_label(e['sign'])} · 평균 **{e['avg_rank']}위** "
-                f"(1위 {e['rank_1_count']}회 · {e['total_days']}일)"
-            )
-        embed.add_field(name="", value="\n".join(lines), inline=False)
-        await interaction.followup.send(embed=embed)
+        people = {}
+        for entry in board[:10]:
+            person = (guild.get_member(entry["user_id"]) if guild is not None
+                      else interaction.client.get_user(entry["user_id"]))
+            if person:
+                people[entry["user_id"]] = person.display_name
+        await interaction.followup.send(embed=_build_leaderboard_embed(scope, board, people, now))
 
 
     @app_commands.command(name="오늘의기운", description="오늘의 천간·오행 기운과 별자리별 영향을 알려줍니다.")
