@@ -246,6 +246,16 @@ FORTUNE_TEMPLATES: dict[str, dict[str, list[str]]] = {
 }
 
 
+def _josa(word: str, type_: str) -> str:
+    last = ord(word[-1])
+    has_jongseong = (last - 0xAC00) % 28 != 0 if 0xAC00 <= last <= 0xD7A3 else False
+    if type_ == "이/가":
+        return "이" if has_jongseong else "가"
+    if type_ == "을/를":
+        return "을" if has_jongseong else "를"
+    return ""
+
+
 def _rank_to_grade(rank: int) -> str:
     if rank <= 3:
         return "대길"
@@ -289,9 +299,9 @@ def get_fortune_text(sign: str, rank: int, d: date) -> str:
     # 상생상극 부가 설명 (1~3위 / 10~12위)
     day_ohang = CHEONGAN_OHANG[get_day_cheongan(d)]
     if rank <= 3 and SANGSAENG.get(day_ohang) == ohang:
-        text += f" ({day_ohang}이 {ohang}을 生하는 날)"
+        text += f" ({day_ohang}{_josa(day_ohang, '이/가')} {ohang}{_josa(ohang, '을/를')} 생하는 날)"
     elif rank >= 10 and SANGGEUK.get(day_ohang) == ohang:
-        text += f" ({day_ohang}이 {ohang}을 克하는 날)"
+        text += f" ({day_ohang}{_josa(day_ohang, '이/가')} {ohang}{_josa(ohang, '을/를')} 극하는 날)"
 
     return text
 
