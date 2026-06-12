@@ -32,7 +32,7 @@ DATE_FORMAT  = "%Y년 %m월 %d일"
 DAILY_FOOTER = "KST 기준 · 매일 갱신"
 OHANG_EMOJI  = {"목": "🌿", "화": "🔥", "토": "🪨", "금": "⚙️", "수": "💧"}
 INVALID_SIGN_MESSAGE = "올바른 별자리를 선택해주세요."
-REGISTER_SIGN_MESSAGE = "`/내별자리`로 별자리를 먼저 등록해주세요."
+REGISTER_SIGN_MESSAGE = "`/별자리`로 별자리를 먼저 등록해주세요."
 log = logging.getLogger(__name__)
 _CHART_LOCK = asyncio.Lock()
 ZODIAC_CHOICES = [app_commands.Choice(name=sign, value=sign) for sign in ZODIAC_SIGNS]
@@ -723,7 +723,7 @@ class HoroscopeCog(commands.Cog):
         )
         await _send_interaction_error(interaction)
 
-    @app_commands.command(name="별자리순위", description="오늘의 12개 별자리 운세 순위를 보여줍니다.")
+    @app_commands.command(name="운세순위", description="오늘의 12개 별자리 운세 순위를 보여줍니다.")
     @app_commands.allowed_installs(guilds=True, users=True)
     @app_commands.allowed_contexts(guilds=True, dms=True, private_channels=True)
     async def today_ranking(self, interaction: discord.Interaction) -> None:
@@ -742,7 +742,7 @@ class HoroscopeCog(commands.Cog):
             view=RankingView(),
         )
 
-    @app_commands.command(name="별자리운세", description="오늘의 별자리 운세를 알려줍니다. 별자리 미입력 시 등록된 별자리를 사용합니다.")
+    @app_commands.command(name="운세", description="오늘의 별자리 운세를 알려줍니다. 별자리 미입력 시 등록된 별자리를 사용합니다.")
     @app_commands.allowed_installs(guilds=True, users=True)
     @app_commands.allowed_contexts(guilds=True, dms=True, private_channels=True)
     @app_commands.describe(별자리="운세를 확인할 별자리 (미입력 시 등록된 별자리 사용)")
@@ -753,7 +753,7 @@ class HoroscopeCog(commands.Cog):
             별자리 = get_zodiac(interaction.user.id)
             if not 별자리:
                 await interaction.followup.send(
-                    "`/내별자리`로 별자리를 먼저 등록하거나, 별자리를 직접 선택해주세요.",
+                    "`/별자리`로 별자리를 먼저 등록하거나, 별자리를 직접 선택해주세요.",
                     ephemeral=True,
                 )
                 return
@@ -772,7 +772,7 @@ class HoroscopeCog(commands.Cog):
             view=FortuneView(별자리, data["rank"]),
         )
 
-    @app_commands.command(name="내별자리", description="별자리 선택이나 생일 입력으로 나의 별자리를 등록합니다.")
+    @app_commands.command(name="별자리", description="별자리 선택이나 생일 입력으로 나의 별자리를 등록합니다.")
     @app_commands.allowed_installs(guilds=True, users=True)
     @app_commands.allowed_contexts(guilds=True, dms=True, private_channels=True)
     @app_commands.describe(

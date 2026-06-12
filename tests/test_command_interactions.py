@@ -33,9 +33,9 @@ NOW = datetime(2026, 6, 12, 9, 0, tzinfo=KST)
 def test_all_commands_and_zodiac_choices_are_registered():
     commands = {command.name: command for command in HoroscopeCog.__cog_app_commands__}
 
-    assert set(commands) == {"별자리순위", "별자리운세", "내별자리", "궁합", "리더보드", "오늘의기운"}
-    assert len(commands["별자리운세"].parameters[0].choices) == 12
-    assert [(parameter.name, len(parameter.choices)) for parameter in commands["내별자리"].parameters] == [
+    assert set(commands) == {"운세순위", "운세", "별자리", "궁합", "리더보드", "오늘의기운"}
+    assert len(commands["운세"].parameters[0].choices) == 12
+    assert [(parameter.name, len(parameter.choices)) for parameter in commands["별자리"].parameters] == [
         ("별자리", 12), ("생일", 0),
     ]
     assert [len(parameter.choices) for parameter in commands["궁합"].parameters] == [0, 12, 12]
