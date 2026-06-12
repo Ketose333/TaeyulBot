@@ -204,6 +204,7 @@ class OtherUserSelect(discord.ui.UserSelect):
 
     async def callback(self, interaction: discord.Interaction) -> None:
         target = self.values[0]
+        is_bot = target.id == interaction.client.user.id
         sign = get_zodiac(target.id)
         if not sign:
             await interaction.response.send_message(
@@ -213,6 +214,10 @@ class OtherUserSelect(discord.ui.UserSelect):
             return
         try:
             await _send_stats(interaction, sign, user=target, edit=True)
+            if is_bot:
+                await interaction.followup.send(
+                    "🤖 *저 한태율예요! 6월 12일생 ♊ 쌍둥이자리입니다.*", ephemeral=True
+                )
         except Exception as e:
             await interaction.response.send_message(f"오류가 발생했습니다: {e}", ephemeral=True)
 
@@ -483,7 +488,8 @@ class HoroscopeCog(commands.Cog):
                     f"**{상대.display_name}**님은 별자리가 등록되어 있지 않습니다.", ephemeral=True
                 )
                 return
-            name1, name2 = interaction.user.display_name, 상대.display_name
+            name1 = interaction.user.display_name
+            name2 = f"{상대.display_name} 🤖" if 상대.id == interaction.client.user.id else 상대.display_name
         elif 별자리1 and 별자리2:
             sign1, sign2 = 별자리1, 별자리2
             name1 = name2 = None
@@ -506,6 +512,8 @@ class HoroscopeCog(commands.Cog):
         embed.add_field(name="궁합 점수", value=f"**{result['score']}점** / 100", inline=True)
         embed.add_field(name="관계", value=f"**{result['relation']}**", inline=True)
         embed.add_field(name="풀이", value=result["description"], inline=False)
+        if 상대 is not None and 상대.id == interaction.client.user.id:
+            embed.set_footer(text="🤖 한태율 (2026년 6월 12일생 · ♊ 쌍둥이자리)")
         await interaction.response.send_message(embed=embed)
 
     @app_commands.command(name="리더보드", description="이달 평균 순위가 가장 좋은 이용자들을 보여줍니다.")

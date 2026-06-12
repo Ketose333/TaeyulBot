@@ -38,6 +38,9 @@ class TaeyulBot(commands.Bot):
     async def on_ready(self) -> None:
         await self.change_presence(activity=discord.Game(name="한태율 | /별자리순위"))
         log.info("봇 준비 완료: %s (ID: %s)", self.user, self.user.id)
+        from app.utils.user_store import set_zodiac, get_zodiac
+        if not get_zodiac(self.user.id):
+            set_zodiac(self.user.id, "쌍둥이자리")
 
 
 def create_bot() -> TaeyulBot:
