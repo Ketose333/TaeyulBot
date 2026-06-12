@@ -1,6 +1,8 @@
 import json
 import os
 
+from app.utils.json_store import atomic_write_json
+
 USERS_PATH = os.path.join(os.path.dirname(__file__), "..", "..", "data", "users.json")
 
 
@@ -12,9 +14,7 @@ def _load() -> dict:
 
 
 def _save(data: dict) -> None:
-    os.makedirs(os.path.dirname(USERS_PATH), exist_ok=True)
-    with open(USERS_PATH, "w", encoding="utf-8") as f:
-        json.dump(data, f, ensure_ascii=False, indent=2)
+    atomic_write_json(USERS_PATH, data)
 
 
 def set_zodiac(user_id: int, sign: str) -> None:

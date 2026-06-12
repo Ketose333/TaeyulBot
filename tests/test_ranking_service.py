@@ -33,6 +33,17 @@ def test_penalty_suppresses_recent_top(sample_history):
     assert rank_of_jeonkal > 3, "최근 1위는 상위 3위에 포함되지 않아야 합니다"
 
 
+def test_penalty_uses_generated_date_not_runtime_date():
+    target = date(2030, 1, 10)
+    history = {
+        "2030-01-09": {"rankings": ["쌍둥이자리"]},
+    }
+
+    result = generate_ranking(target, history)
+
+    assert result.index("쌍둥이자리") + 1 > 3
+
+
 def test_theme_seed_is_deterministic(today):
     s1 = pick_theme_seed(today)
     s2 = pick_theme_seed(today)

@@ -3,6 +3,7 @@ from datetime import date
 from app.utils.saju_engine import (
     get_compatibility,
     get_lucky_extras,
+    _josa,
     ZODIAC_SIGNS,
     ZODIAC_OHANG,
     LUCKY_COLORS,
@@ -64,3 +65,11 @@ def test_compatibility_all_pairs_valid():
             assert r["relation"] in ("상생", "비화", "상극", "중립")
             assert 45 <= r["score"] <= 98
             assert r["description"]
+
+
+# ── 조사 ─────────────────────────────────────────────────────────────
+
+def test_josa_for_five_elements():
+    assert {ohang: _josa(ohang, "이/가") for ohang in "목화토금수"} == {
+        "목": "이", "화": "가", "토": "가", "금": "이", "수": "가",
+    }

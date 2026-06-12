@@ -33,7 +33,7 @@ def generate_ranking(today: date, history: dict) -> list[str]:
 
     # 최근 3일 1위 별자리에 페널티 → 연속 상위권 방지
     from app.utils.date_utils import get_recent_top_signs
-    recent_tops = get_recent_top_signs(history, days=3)
+    recent_tops = get_recent_top_signs(history, days=3, reference_date=today)
     for sign in recent_tops:
         if sign in scores:
             scores[sign] -= REPEAT_PENALTY
