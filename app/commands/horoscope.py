@@ -88,6 +88,10 @@ def _unregistered_user_message(display_name: str) -> str:
     return f"**{display_name}**님은 별자리가 등록되어 있지 않습니다."
 
 
+def _registered_sign_message(sign: str) -> str:
+    return f"{_zodiac_label(sign, bold=True)}로 등록했어요!"
+
+
 async def _get_registered_sign_or_reply(interaction: discord.Interaction) -> str | None:
     sign = get_zodiac(interaction.user.id)
     if sign:
@@ -599,8 +603,7 @@ class HoroscopeCog(commands.Cog):
             return
         set_zodiac(interaction.user.id, 별자리)
         await interaction.response.send_message(
-            f"{_zodiac_label(별자리, bold=True)}로 등록됐어요! "
-            "이제 운세 메시지에서 통계와 프로필을 확인할 수 있습니다.",
+            _registered_sign_message(별자리),
             ephemeral=True,
         )
 

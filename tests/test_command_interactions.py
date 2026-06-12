@@ -16,6 +16,7 @@ from app.commands.horoscope import (
     _build_stats_embed,
     _send_interaction_error,
     _send_stats,
+    _registered_sign_message,
     _zodiac_select_options,
     _zodiac_label,
 )
@@ -82,6 +83,7 @@ def test_daily_embeds_share_date_and_refresh_footer():
 def test_zodiac_labels_use_consistent_spacing_and_emphasis():
     assert _zodiac_label("사자자리") == "♌ 사자자리"
     assert _zodiac_label("사자자리", bold=True) == "**♌ 사자자리**"
+    assert _registered_sign_message("천칭자리") == "**♎ 천칭자리**로 등록했어요!"
 
 
 def test_daily_energy_uses_josa_and_standard_zodiac_labels():
