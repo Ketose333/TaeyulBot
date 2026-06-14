@@ -33,8 +33,9 @@ NOW = datetime(2026, 6, 12, 9, 0, tzinfo=KST)
 def test_all_commands_and_zodiac_choices_are_registered():
     commands = {command.name: command for command in HoroscopeCog.__cog_app_commands__}
 
-    assert set(commands) == {"운세순위", "운세", "별자리", "궁합", "리더보드", "오늘의기운"}
+    assert set(commands) == {"운세순위", "운세", "운세통계", "별자리", "궁합", "리더보드", "오늘의기운"}
     assert len(commands["운세"].parameters[0].choices) == 12
+    assert len(commands["운세통계"].parameters[0].choices) == 12
     assert [(parameter.name, len(parameter.choices)) for parameter in commands["별자리"].parameters] == [
         ("별자리", 12), ("생일", 0),
     ]
@@ -279,6 +280,57 @@ async def test_send_stats_is_public_and_defers_before_generating_chart():
 
     assert events == ["defer", "chart", "edit"]
     response.defer.assert_awaited_once_with(thinking=True)
+
+
+@pytest.mark.asyncio
+async def test_fortune_stats_command_defaults_to_registered_sign():
+    cog = SimpleNamespace()
+    interaction = SimpleNamespace(
+        user=SimpleNamespace(id=42),
+        response=SimpleNamespace(send_message=AsyncMock()),
+    )
+
+    with (
+        patch("app.commands.horoscope.get_zodiac", return_value="사자자리"),
+        patch("app.commands.horoscope._send_stats", new=AsyncMock()) as send_stats,
+    ):
+        await HoroscopeCog.fortune_stats.callback(cog, interaction)
+
+    send_stats.assert_awaited_once_with(interaction, "사자자리", user=interaction.user)
+    interaction.response.send_message.assert_not_awaited()
+
+
+@pytest.mark.asyncio
+async def test_fortune_stats_command_uses_explicit_sign_without_user():
+    cog = SimpleNamespace()
+    interaction = SimpleNamespace(
+        user=SimpleNamespace(id=42),
+        response=SimpleNamespace(send_message=AsyncMock()),
+    )
+
+    with patch("app.commands.horoscope._send_stats", new=AsyncMock()) as send_stats:
+        await HoroscopeCog.fortune_stats.callback(cog, interaction, "물병자리")
+
+    send_stats.assert_awaited_once_with(interaction, "물병자리", user=None)
+
+
+@pytest.mark.asyncio
+async def test_fortune_stats_command_prompts_registration_when_unset():
+    cog = SimpleNamespace()
+    interaction = SimpleNamespace(
+        user=SimpleNamespace(id=42),
+        response=SimpleNamespace(send_message=AsyncMock()),
+    )
+
+    with (
+        patch("app.commands.horoscope.get_zodiac", return_value=None),
+        patch("app.commands.horoscope._send_stats", new=AsyncMock()) as send_stats,
+    ):
+        await HoroscopeCog.fortune_stats.callback(cog, interaction)
+
+    send_stats.assert_not_awaited()
+    interaction.response.send_message.assert_awaited_once()
+    assert interaction.response.send_message.await_args.kwargs["ephemeral"] is True
 
 
 @pytest.mark.asyncio

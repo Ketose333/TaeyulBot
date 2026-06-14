@@ -772,6 +772,31 @@ class HoroscopeCog(commands.Cog):
             view=FortuneView(별자리, data["rank"]),
         )
 
+    @app_commands.command(name="운세통계", description="이달의 별자리 순위 통계를 보여줍니다. 별자리 미입력 시 등록된 별자리를 사용합니다.")
+    @app_commands.allowed_installs(guilds=True, users=True)
+    @app_commands.allowed_contexts(guilds=True, dms=True, private_channels=True)
+    @app_commands.describe(별자리="통계를 확인할 별자리 (미입력 시 등록된 별자리 사용)")
+    @app_commands.choices(별자리=ZODIAC_CHOICES)
+    async def fortune_stats(self, interaction: discord.Interaction, 별자리: str | None = None) -> None:
+        user: discord.User | discord.Member | None = None
+        if 별자리 is None:
+            별자리 = get_zodiac(interaction.user.id)
+            if not 별자리:
+                await interaction.response.send_message(
+                    "`/별자리`로 별자리를 먼저 등록하거나, 별자리를 직접 선택해주세요.",
+                    ephemeral=True,
+                )
+                return
+            user = interaction.user
+        if 별자리 not in ZODIAC_SIGNS:
+            await interaction.response.send_message(INVALID_SIGN_MESSAGE, ephemeral=True)
+            return
+        try:
+            await _send_stats(interaction, 별자리, user=user)
+        except Exception:
+            log.exception("운세통계 커맨드 처리 실패: sign=%s", 별자리)
+            await _send_interaction_error(interaction)
+
     @app_commands.command(name="별자리", description="별자리 선택이나 생일 입력으로 나의 별자리를 등록합니다.")
     @app_commands.allowed_installs(guilds=True, users=True)
     @app_commands.allowed_contexts(guilds=True, dms=True, private_channels=True)
