@@ -4,16 +4,18 @@ import matplotlib
 matplotlib.use("Agg")
 import matplotlib.pyplot as plt
 import matplotlib.font_manager as fm
+from matplotlib.transforms import blended_transform_factory
 
-BG        = "#0f0e17"
-PANEL     = "#16213e"
-LINE      = "#c084fc"
-GRID      = "#2a2a4a"
-TEXT      = "#e2e8f0"
-SUBTEXT   = "#94a3b8"
-GOOD      = "#4ade80"
-BAD       = "#f87171"
-AVERAGE   = "#f9c74f"
+# Discord 다크 모드 팔레트 (임베드 배경과 자연스럽게 블렌딩)
+BG        = "#2b2d31"   # 바깥 배경 = Discord 임베드 배경색
+PANEL     = "#1e1f22"   # 플롯 영역 (한 단계 더 어둡게 — 깊이감)
+LINE      = "#c4b5fd"   # 메인 라인 (밝은 퍼플 — 어두운 패널 위 가시성↑)
+GRID      = "#3a3d44"   # 중성 그레이 그리드
+TEXT      = "#f2f3f5"   # Discord 본문 텍스트색
+SUBTEXT   = "#b5bac1"   # Discord 보조 텍스트색
+GOOD      = "#57f287"   # Discord 브랜드 그린 (상위, 밝게)
+BAD       = "#ed4245"   # Discord 브랜드 레드 (하위)
+AVERAGE   = "#fee75c"   # Discord 브랜드 옐로 (평균선)
 
 
 def _setup_korean_font() -> None:
@@ -44,12 +46,14 @@ def generate_rank_chart(sign: str, daily: list[tuple[str, int]]) -> BytesIO:
     x     = list(range(len(dates)))
     avg   = sum(ranks) / len(ranks)
 
-    fig, ax = plt.subplots(figsize=(8, 4), constrained_layout=True)
+    fig, ax = plt.subplots(figsize=(8.6, 4.6), constrained_layout=True)
+    # 그림 가장자리 여백을 넉넉하게 (실서비스 차트 톤에 맞춤)
+    fig.set_constrained_layout_pads(w_pad=0.18, h_pad=0.18, wspace=0, hspace=0)
     fig.patch.set_facecolor(BG)
     ax.set_facecolor(PANEL)
 
     # 영역 채우기
-    ax.fill_between(x, ranks, 12.5, alpha=0.18, color=LINE)
+    ax.fill_between(x, ranks, 12.5, alpha=0.22, color=LINE)
 
     # 메인 라인
     ax.plot(x, ranks, color=LINE, linewidth=2.5, solid_capstyle="round", zorder=3)
@@ -73,6 +77,9 @@ def generate_rank_chart(sign: str, daily: list[tuple[str, int]]) -> BytesIO:
                     xytext=(0, 10), textcoords="offset points",
                     color=BAD, fontsize=8, ha="center", fontweight="bold")
 
+    # X축 범위 (데이터가 패널 전체에 균등하게 차도록 명시)
+    ax.set_xlim(-0.4, (len(x) - 1) + 0.4)
+
     # Y축
     ax.set_ylim(13.2, 0.2)
     ax.set_yticks(range(1, 13))
@@ -84,9 +91,7 @@ def generate_rank_chart(sign: str, daily: list[tuple[str, int]]) -> BytesIO:
     ax.set_xticklabels([dates[i][5:] for i in range(0, len(dates), step)],
                        color=SUBTEXT, fontsize=8)
 
-    # 타이틀
-    ax.set_title(f"{sign}  ·  이달 평균 {avg:.1f}위",
-                 color=TEXT, fontsize=13, fontweight="bold", pad=14)
+    # 타이틀 없음 — Discord 임베드 제목이 맥락 제공 (sign 인자는 시그니처 유지용)
 
     # 그리드 & 테두리
     ax.grid(axis="y", color=GRID, linewidth=0.8, alpha=0.9)
@@ -95,9 +100,11 @@ def generate_rank_chart(sign: str, daily: list[tuple[str, int]]) -> BytesIO:
         spine.set_edgecolor(GRID)
     ax.tick_params(colors=GRID, length=0)
 
-    # 평균 라벨
-    ax.text(len(x) - 0.2, avg - 0.35, f"평균 {avg:.1f}위",
-            color=AVERAGE, fontsize=7.5, ha="right", alpha=0.85)
+    # 평균 라벨 (패널 안쪽 오른쪽 끝에 고정 — x는 축 비율, y는 데이터 좌표)
+    label_trans = blended_transform_factory(ax.transAxes, ax.transData)
+    ax.text(0.985, avg - 0.3, f"평균 {avg:.1f}위",
+            transform=label_trans, color=AVERAGE, fontsize=7.5,
+            ha="right", va="bottom", alpha=0.85, zorder=5)
 
     buf = BytesIO()
     plt.savefig(buf, format="png", dpi=120, facecolor=BG)
