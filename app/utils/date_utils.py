@@ -1,8 +1,7 @@
-import json
 import os
 from datetime import date, datetime, timedelta, timezone
 
-from app.utils.json_store import atomic_write_json
+from app.utils.json_store import atomic_write_json, read_json
 
 KST = timezone(timedelta(hours=9))
 
@@ -19,10 +18,7 @@ HISTORY_DAYS = 30
 
 
 def _load_history() -> dict:
-    if not os.path.exists(HISTORY_PATH):
-        return {}
-    with open(HISTORY_PATH, "r", encoding="utf-8") as f:
-        return json.load(f)
+    return read_json(HISTORY_PATH, {})
 
 
 def _save_history(history: dict) -> None:
@@ -57,14 +53,6 @@ def get_recent_top_signs(
         if key in history and history[key]["rankings"]:
             result.append(history[key]["rankings"][0])
     return result
-
-
-def get_yesterday_top3(history: dict) -> list[str]:
-    yesterday = (kst_today() - timedelta(days=1)).isoformat()
-    entry = history.get(yesterday)
-    if not entry:
-        return []
-    return entry["rankings"][:3]
 
 
 def get_yesterday_rankings(history: dict) -> list[str]:

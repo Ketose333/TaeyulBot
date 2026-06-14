@@ -1,10 +1,17 @@
 from datetime import date
 
-from app.services.ranking_service import generate_ranking, pick_theme_seed
-from app.utils.saju_engine import generate_all_fortunes, get_daily_theme, get_lucky_item, get_lucky_extras, ZODIAC_SIGNS  # noqa: F401
-from app.utils.date_utils import get_history, save_today, get_yesterday_top3, get_rank_delta, kst_today
+from app.services.ranking_service import generate_ranking
+from app.utils.saju_engine import generate_all_fortunes, get_daily_theme, get_lucky_item, get_lucky_extras
+from app.utils.date_utils import get_history, save_today, get_rank_delta, kst_today
 
 _cache: dict[str, dict] = {}
+
+
+def _cache_result(key: str, result: dict) -> dict:
+    """오늘 키 하나만 유지 — 날짜가 바뀌면 이전 캐시는 버린다(무한 증가 방지)."""
+    _cache.clear()
+    _cache[key] = result
+    return result
 
 
 def get_today_fortune(today: date | None = None) -> dict:
@@ -19,9 +26,9 @@ def get_today_fortune(today: date | None = None) -> dict:
     if key in history:
         entry = history[key]
         fortunes = generate_all_fortunes(entry["rankings"], today)
-        result = {"rankings": entry["rankings"], "theme": entry["theme"], "fortunes": fortunes}
-        _cache[key] = result
-        return result
+        return _cache_result(
+            key, {"rankings": entry["rankings"], "theme": entry["theme"], "fortunes": fortunes}
+        )
 
     rankings = generate_ranking(today, history)
     theme = get_daily_theme(today)
@@ -29,9 +36,7 @@ def get_today_fortune(today: date | None = None) -> dict:
 
     save_today(today, rankings, theme)
 
-    result = {"rankings": rankings, "theme": theme, "fortunes": fortunes}
-    _cache[key] = result
-    return result
+    return _cache_result(key, {"rankings": rankings, "theme": theme, "fortunes": fortunes})
 
 
 def get_sign_fortune(sign: str, today: date | None = None) -> dict:

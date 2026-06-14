@@ -1,12 +1,13 @@
-from datetime import date
-import calendar
-
-from app.utils.date_utils import get_history, kst_now
+from app.utils.date_utils import get_history
 
 
-def get_sign_stats(sign: str, year: int, month: int) -> dict:
-    """history.json에서 해당 월의 별자리 순위 통계를 계산한다."""
-    history = get_history()
+def get_sign_stats(sign: str, year: int, month: int, history: dict | None = None) -> dict:
+    """history.json에서 해당 월의 별자리 순위 통계를 계산한다.
+
+    history를 넘기면 디스크 재읽기를 생략한다(리더보드 일괄 집계용).
+    """
+    if history is None:
+        history = get_history()
 
     prefix = f"{year:04d}-{month:02d}-"
     daily: list[tuple[str, int]] = []
@@ -31,14 +32,12 @@ def get_sign_stats(sign: str, year: int, month: int) -> dict:
         }
 
     ranks = [r for _, r in daily]
-    _, days_in_month = calendar.monthrange(year, month)
 
     return {
         "sign": sign,
         "year": year,
         "month": month,
         "total_days": len(daily),
-        "days_in_month": days_in_month,
         "start_day": daily[0][0],
         "end_day": daily[-1][0],
         "avg_rank": round(sum(ranks) / len(ranks), 1),
@@ -50,9 +49,10 @@ def get_sign_stats(sign: str, year: int, month: int) -> dict:
 
 def get_leaderboard(user_signs: dict[int, str], year: int, month: int) -> list[dict]:
     """등록 유저별 이달 평균 순위를 집계해 오름차순 정렬한 리더보드."""
+    history = get_history()
     board = []
     for user_id, sign in user_signs.items():
-        stats = get_sign_stats(sign, year, month)
+        stats = get_sign_stats(sign, year, month, history=history)
         if stats["total_days"] == 0:
             continue
         board.append({

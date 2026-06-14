@@ -1,16 +1,12 @@
-import json
 import os
 
-from app.utils.json_store import atomic_write_json
+from app.utils.json_store import atomic_write_json, read_json
 
 USERS_PATH = os.path.join(os.path.dirname(__file__), "..", "..", "data", "users.json")
 
 
 def _load() -> dict:
-    if not os.path.exists(USERS_PATH):
-        return {}
-    with open(USERS_PATH, "r", encoding="utf-8") as f:
-        return json.load(f)
+    return read_json(USERS_PATH, {})
 
 
 def _save(data: dict) -> None:
