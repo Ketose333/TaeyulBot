@@ -1,6 +1,23 @@
 # 한태율 🔮
 
+![Python](https://img.shields.io/badge/Python-3776AB?style=flat-square&logo=python&logoColor=white)
+![discord.py](https://img.shields.io/badge/discord.py-5865F2?style=flat-square&logo=discord&logoColor=white)
+![matplotlib](https://img.shields.io/badge/matplotlib-11557C?style=flat-square&logo=python&logoColor=white)
+
 Discord 별자리 운세 봇. 오늘의 12별자리 순위·운세·월간 통계 차트를 제공합니다.
+
+---
+
+## 목차
+
+1. [봇 명령어](#봇-명령어)
+2. [로컬 개발](#로컬-개발)
+3. [서버 배포 (Oracle Cloud Free Tier 기준)](#서버-배포-oracle-cloud-free-tier-기준)
+4. [코드 업데이트](#코드-업데이트)
+5. [운영 명령어 모음](#운영-명령어-모음)
+6. [환경변수 (.env)](#환경변수-env)
+7. [Privileged Intent 설정 (필수)](#privileged-intent-설정-필수)
+8. [프로젝트 구조](#프로젝트-구조)
 
 ---
 
@@ -25,7 +42,7 @@ User-Installable App — 서버 없이 DM에서도 사용 가능.
 ## 로컬 개발
 
 ```bash
-git clone https://github.com/<your-username>/taeyulbot.git
+git clone https://github.com/Ketose333/taeyulbot.git
 cd taeyulbot
 
 python3 -m venv venv
@@ -85,6 +102,7 @@ OCI 콘솔 → `Networking → Virtual Cloud Networks → Start VCN Wizard`
 ### B. SSH 접속
 
 SSH 키 파일(`.key`)이 있는 PC에서 실행.
+서버 IP는 고정값 **`132.145.108.135`** (어느 PC에서 접속하든 동일). 키 파일 경로(`<KEY_PATH>`)만 PC에 맞게 바꾸면 됩니다.
 
 **Windows PowerShell — SSH 키 권한 설정 (처음 1회)**
 ```powershell
@@ -94,7 +112,7 @@ icacls "<KEY_PATH>" /inheritance:r /grant:r "<USERNAME>:R"
 
 **접속**
 ```bash
-ssh -i "<KEY_PATH>" ubuntu@<SERVER_IP>
+ssh -i "<KEY_PATH>" ubuntu@132.145.108.135
 ```
 
 > SSH 키 파일은 분실하면 복구 불가. 구글 드라이브 등 안전한 곳에 백업 권장.
@@ -107,7 +125,7 @@ ssh -i "<KEY_PATH>" ubuntu@<SERVER_IP>
 sudo apt update && sudo apt upgrade -y
 sudo apt install -y python3 python3-pip python3-venv git fonts-nanum
 
-git clone https://github.com/<your-username>/taeyulbot.git taeyulbot
+git clone https://github.com/Ketose333/taeyulbot.git
 cd taeyulbot
 python3 -m venv venv
 source venv/bin/activate
