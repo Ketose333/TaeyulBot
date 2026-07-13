@@ -79,3 +79,45 @@ def test_channel_store():
             disable_free_response(999)
             assert not is_free_response_enabled(999)
 
+def test_channel_settings():
+    import tempfile
+    from app.utils.channel_settings import get_channel_settings, set_channel_setting
+    
+    with tempfile.TemporaryDirectory() as tmpdir:
+        temp_settings_file = os.path.join(tmpdir, "channel_settings.json")
+        with patch("app.utils.channel_settings.SETTINGS_PATH", temp_settings_file):
+            # Default values
+            settings = get_channel_settings(12345)
+            assert settings["temperature"] == 0.7
+            assert settings["model"] == "Gemini"
+            
+            # Set values
+            set_channel_setting(12345, "temperature", 1.0)
+            set_channel_setting(12345, "model", "Groq")
+            
+            # Read back
+            settings = get_channel_settings(12345)
+            assert settings["temperature"] == 1.0
+            assert settings["model"] == "Groq"
+
+@pytest.mark.asyncio
+async def test_llm_service_reset_history():
+    from app.services.llm_service import LLMService
+    import tempfile
+    
+    with tempfile.TemporaryDirectory() as tmpdir:
+        temp_history_file = os.path.join(tmpdir, "chat_history.json")
+        with patch("app.services.llm_service.LLMService.__init__", lambda self: None):
+            svc = LLMService()
+            svc.history_file_path = temp_history_file
+            svc.locks = {}
+            
+            # Write dummy history
+            svc._save_history_unsafe("session-reset", [HumanMessage(content="hello")])
+            assert len(svc._load_history_unsafe("session-reset")) == 1
+            
+            # Reset history
+            await svc.reset_history("session-reset")
+            assert len(svc._load_history_unsafe("session-reset")) == 0
+
+

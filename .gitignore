@@ -8,4 +8,5 @@ venv/
 data/history.json
 data/users.json
 data/chat_history.json
+data/channel_settings.json
 .claude/
