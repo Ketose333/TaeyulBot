@@ -486,7 +486,7 @@ class OtherUserSelect(discord.ui.UserSelect):
             await _send_stats(interaction, sign, user=target, edit=True)
             if is_bot:
                 await interaction.followup.send(
-                    "🤖 *저 한태율예요! 6월 12일생 ♊ 쌍둥이자리입니다.*", ephemeral=True
+                    "🤖 *저 한태율이에요! 6월 12일생 ♊ 쌍둥이자리입니다.*", ephemeral=True
                 )
         except Exception:
             log.exception("다른 이용자 통계 처리 실패: user_id=%s", target.id)

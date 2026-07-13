@@ -42,8 +42,8 @@ User-Installable App — 서버 없이 DM에서도 사용 가능.
 ## 로컬 개발
 
 ```bash
-git clone https://github.com/Ketose333/taeyulbot.git
-cd taeyulbot
+git clone https://github.com/Ketose333/TaeyulBot.git
+cd TaeyulBot
 
 python3 -m venv venv
 source venv/bin/activate        # Windows: venv\Scripts\activate
@@ -125,8 +125,8 @@ ssh -i "<KEY_PATH>" ubuntu@132.145.108.135
 sudo apt update && sudo apt upgrade -y
 sudo apt install -y python3 python3-pip python3-venv git fonts-nanum
 
-git clone https://github.com/Ketose333/taeyulbot.git
-cd taeyulbot
+git clone https://github.com/Ketose333/TaeyulBot.git
+cd TaeyulBot
 python3 -m venv venv
 source venv/bin/activate
 pip install -r requirements.txt
@@ -151,8 +151,8 @@ After=network.target
 [Service]
 Type=simple
 User=ubuntu
-WorkingDirectory=/home/ubuntu/taeyulbot
-ExecStart=/home/ubuntu/taeyulbot/venv/bin/python main.py
+WorkingDirectory=/home/ubuntu/TaeyulBot
+ExecStart=/home/ubuntu/TaeyulBot/venv/bin/python main.py
 Restart=always
 RestartSec=5
 
@@ -174,7 +174,7 @@ sudo systemctl status taeyulbot   # active (running) 확인
 로컬에서 수정 → push → 서버에서:
 
 ```bash
-cd ~/taeyulbot
+cd ~/TaeyulBot
 git pull
 source venv/bin/activate
 pip install -r requirements.txt   # requirements.txt 변경 시만
@@ -228,7 +228,7 @@ Developer Portal → 해당 앱 → **Bot** → **Privileged Gateway Intents** �
 ## 프로젝트 구조
 
 ```
-taeyulbot/
+TaeyulBot/
 ├── main.py
 ├── app/
 │   ├── bot.py                   # 봇 초기화, persistent view 등록
