@@ -61,3 +61,21 @@ async def test_llm_service_fallback_behavior():
             assert history[0].content == "test prompt"
             assert isinstance(history[1], AIMessage)
             assert history[1].content == "Groq response"
+
+def test_channel_store():
+    from app.utils.channel_store import enable_free_response, disable_free_response, is_free_response_enabled
+    
+    with tempfile.TemporaryDirectory() as tmpdir:
+        temp_channels_file = os.path.join(tmpdir, "free_channels.json")
+        with patch("app.utils.channel_store.CHANNELS_PATH", temp_channels_file):
+            # Initially false
+            assert not is_free_response_enabled(999)
+            
+            # Enable it
+            enable_free_response(999)
+            assert is_free_response_enabled(999)
+            
+            # Disable it
+            disable_free_response(999)
+            assert not is_free_response_enabled(999)
+

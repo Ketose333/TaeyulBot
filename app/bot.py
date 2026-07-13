@@ -78,8 +78,12 @@ class TaeyulBot(commands.Bot):
             if hasattr(message.channel, 'name') and message.channel.name:
                 is_allowed_channel = message.channel.name.startswith("AI-") or message.channel.name == "llm-타임"
 
-            # 둘 다 부합하지 않으면 무시
-            if not (is_mentioned or is_allowed_channel):
+            # 조건 C: 자유 대화 허용 채널 설정 여부 검증
+            from app.utils.channel_store import is_free_response_enabled
+            is_free_channel = is_free_response_enabled(message.channel.id)
+
+            # 세 조건 중 하나라도 부합하지 않으면 무시
+            if not (is_mentioned or is_allowed_channel or is_free_channel):
                 return
 
         # ------------------ [ 조건 통과: LLM 연동 작동 ] ------------------

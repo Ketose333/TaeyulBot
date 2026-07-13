@@ -955,6 +955,39 @@ class HoroscopeCog(commands.Cog):
         energy = get_daily_energy(today.date())
         await interaction.response.send_message(embed=_build_daily_energy_embed(energy, today))
 
+    @app_commands.command(name="자유대화", description="이 채널에서 멘션 없이도 봇이 모든 메시지에 응답하도록 설정합니다.")
+    @app_commands.describe(설정="켜기(True) 또는 끄기(False)")
+    @app_commands.default_permissions(manage_channels=True)
+    @app_commands.allowed_installs(guilds=True, users=False)
+    @app_commands.allowed_contexts(guilds=True, dms=False, private_channels=False)
+    async def configure_free_response(
+        self,
+        interaction: discord.Interaction,
+        설정: bool,
+    ) -> None:
+        if not interaction.guild:
+            await interaction.response.send_message(
+                "이 명령어는 서버 채널에서만 사용할 수 있습니다.",
+                ephemeral=True,
+            )
+            return
+
+        from app.utils.channel_store import enable_free_response, disable_free_response
+        
+        channel_id = interaction.channel.id
+        if 설정:
+            enable_free_response(channel_id)
+            await interaction.response.send_message(
+                f"🔮 **자유 대화 기능이 활성화되었습니다!**\n이 채널({interaction.channel.mention})에서 이제 봇 멘션 없이도 모든 질문에 답변합니다.",
+                ephemeral=False,
+            )
+        else:
+            disable_free_response(channel_id)
+            await interaction.response.send_message(
+                f"🔮 **자유 대화 기능이 해제되었습니다.**\n이제 이 채널에서는 봇을 직접 멘션하거나 AI 채널 규칙일 때만 응답합니다.",
+                ephemeral=False,
+            )
+
 
 async def setup(bot: commands.Bot) -> None:
     await bot.add_cog(HoroscopeCog(bot))
