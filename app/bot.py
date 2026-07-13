@@ -46,6 +46,13 @@ class TaeyulBot(commands.Bot):
             set_zodiac(self.user.id, "쌍둥이자리")
 
     async def on_message(self, message: discord.Message) -> None:
+        log.info(
+            "on_message 감지: author=%s (bot=%s), content=%r, channel=%s",
+            message.author,
+            message.author.bot,
+            message.content,
+            message.channel
+        )
         # [필터 규칙 1] 봇 본인이 작성했거나 시스템/타사 봇 계정의 메시지는 즉시 무시
         if message.author.bot:
             return
