@@ -18,6 +18,7 @@ class TaeyulBot(commands.Bot):
 
     async def setup_hook(self) -> None:
         await self.load_extension("app.commands.horoscope")
+        await self.load_extension("app.commands.emoji")
 
         # 재시작 후에도 버튼·드랍다운이 살아있도록 persistent view 등록
         from app.commands.horoscope import CompatibilityInviteView, FortuneView, StatsView, RankingView

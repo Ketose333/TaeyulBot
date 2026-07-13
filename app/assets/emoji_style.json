@@ -1,0 +1,55 @@
+{
+  "name": "tmon-outline-discord-text-emoji",
+  "description": "Preset for 1024x1024 Discord text emoji using TmonMonsori with a bold black outline.",
+  "canvas": {
+    "width": 1024,
+    "height": 1024,
+    "scale": 4,
+    "background": "transparent"
+  },
+  "font": {
+    "family": "TmonMonsori",
+    "weight": "Black",
+    "path": "assets/TmonMonsori.woff",
+    "source": "https://cdn.jsdelivr.net/gh/projectnoonnu/noonfonts_two@1.0/TmonMonsori.woff"
+  },
+  "layout": {
+    "max_width_ratio": 0.88,
+    "max_height_ratio": 0.86,
+    "vertical_offset_px": -10
+  },
+  "paint": {
+    "fill_rgba": [255, 255, 255, 255],
+    "stroke_rgba": [16, 16, 16, 255],
+    "stroke_width_px": 58,
+    "shadow_rgba": [0, 0, 0, 78],
+    "shadow_offset_px": 22
+  },
+  "export": {
+    "format": "PNG",
+    "optimize": true,
+    "directory": "output",
+    "default_output_pattern": "{emoji_name}.png"
+  },
+  "discord": {
+    "name_rule": "Use at least 2 characters, alphanumeric characters, and underscores.",
+    "romanization": "Revised Romanization of Korean",
+    "file_metadata_keys": ["discord_name", "source_text", "romanization"]
+  },
+  "emoji_names": {
+    "잘": "jal_emoji",
+    "가": "ga_emoji",
+    "게": "ge_emoji",
+    "못": "mot_emoji",
+    "오": "o_emoji",
+    "갈": "gal_emoji",
+    "올": "ol_emoji",
+    "듯": "deut_emoji",
+    "뻔": "ppeon_emoji",
+    "살": "sal_emoji"
+  },
+  "reference": {
+    "text": "잘",
+    "output": "output/jal_emoji.png"
+  }
+}

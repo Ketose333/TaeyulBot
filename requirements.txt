@@ -6,4 +6,6 @@ pytest-asyncio==0.24.0
 langchain-core
 langchain-google-genai
 langchain-groq
+Pillow
+resvg
 

@@ -1,0 +1,30 @@
+{
+  "name": "twemoji-heart-color-variant",
+  "description": "Preset for 100x100 heart emoji color variants, rendered from the twemoji 1f499 (blue heart) SVG with the fill color swapped. Uses resvg (native SVG rasterizer) so margins and anti-aliased edges match a real browser render pixel-for-pixel.",
+  "source_svg": "assets/1f499.svg",
+  "base_fill": "#5DADEC",
+  "canvas": {
+    "width": 100,
+    "height": 100
+  },
+  "export": {
+    "format": "PNG",
+    "directory": "output",
+    "default_output_pattern": "{name}.png"
+  },
+  "discord": {
+    "name_rule": "Use at least 2 characters, alphanumeric characters, and underscores."
+  },
+  "palette": {
+    "id17_heart": "#0050A4",
+    "id18_heart": "#62D3D1",
+    "id19_heart": "#FED480",
+    "id20_heart": "#846EEA",
+    "id21_heart": "#7499B6"
+  },
+  "reference": {
+    "name": "id17_heart",
+    "hex": "#0050A4",
+    "output": "output/id17_heart.png"
+  }
+}

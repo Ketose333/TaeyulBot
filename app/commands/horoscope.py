@@ -57,7 +57,7 @@ def _jal_image_path(rank: int) -> str | None:
     if rank == 1:
         return os.path.join(ASSETS_DIR, "jalsalge.png")
     if rank == 12:
-        return os.path.join(ASSETS_DIR, "jalgake.png")
+        return os.path.join(ASSETS_DIR, "jalgage.png")
     return None
 
 
@@ -652,7 +652,7 @@ class JalButton(discord.ui.Button):
             await interaction.response.defer()
         else:
             await interaction.response.send_message(
-                "이미지 파일이 없습니다. `assets/jalsalge.png` 또는 `assets/jalgake.png`를 추가해주세요.",
+                "이미지 파일이 없습니다. `assets/jalsalge.png` 또는 `assets/jalgage.png`를 추가해주세요.",
                 ephemeral=True,
             )
 
