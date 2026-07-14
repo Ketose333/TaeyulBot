@@ -27,6 +27,9 @@ class TaeyulBot(commands.Bot):
         super().__init__(command_prefix="!", intents=intents)
 
     async def setup_hook(self) -> None:
+        from app.services.llm_service import LLMService
+        self.llm_service = LLMService()
+
         await self.load_extension("app.commands.horoscope")
         await self.load_extension("app.commands.emoji")
 
@@ -83,73 +86,13 @@ class TaeyulBot(commands.Bot):
 
         # [필터 규칙 4] DM 채널인지 체크 (DM 채널은 무조건 통과)
         is_dm = isinstance(message.channel, discord.DMChannel)
-        is_mentioned = False
 
-        if not is_dm:
-            # 일반 채널일 경우 조건부 개입
-            # 조건 A: 봇 계정이 명확하게 태그(@한태율) 되었는가?
-            is_mentioned = self.user.mentioned_in(message)
+        from app.services import chat_orchestrator
+        should_respond, is_mentioned = chat_orchestrator.evaluate_message_routing(self, message, is_dm)
+        if not should_respond:
+            return
 
-            # 조건 B: 특정 전용 채널 혹은 AI 전용 스레드 이름 규칙(예: "AI-대화")에 부합하는가?
-            is_allowed_channel = False
-            if hasattr(message.channel, 'name') and message.channel.name:
-                is_allowed_channel = message.channel.name.startswith("AI-") or message.channel.name == "llm-타임"
-
-            # 조건 C: 자유 대화 허용 채널 설정 여부 검증
-            from app.utils.channel_settings import is_free_response_enabled
-            is_free_channel = is_free_response_enabled(message.channel.id)
-
-            # 조건 D: RP(롤플레이) 모드가 활성화된 채널인가? (!rp 시작으로 켜짐)
-            from app.utils import rp_store
-            is_rp_channel = rp_store.is_active(str(message.channel.id))
-
-            # 네 조건 중 하나라도 부합하지 않으면 무시
-            if not (is_mentioned or is_allowed_channel or is_free_channel or is_rp_channel):
-                return
-
-        # ------------------ [ 조건 통과: LLM 연동 작동 ] ------------------
-        async with message.channel.typing():
-            try:
-                # 프롬프트에서 봇 멘션 부분 제거 (@한태율)
-                clean_prompt = message.clean_content
-                clean_prompt = clean_prompt.replace(f"@{self.user.display_name}", "").replace(f"@{self.user.name}", "").strip()
-
-                # 빈 메시지 방지
-                if not clean_prompt:
-                    await message.reply("안녕하세요! 질문을 입력해주시면 답변해 드릴게요. 🔮")
-                    return
-
-                # 세션 ID 설정
-                session_id = str(message.channel.id)
-
-                # LLM 서비스 로딩 및 호출
-                from app.services.llm_service import LLMService
-                if not hasattr(self, 'llm_service'):
-                    self.llm_service = LLMService()
-                
-                # 멘션/DM처럼 봇에게 직접 말을 건 게 확실하면 RP 응답 여부 판정을 건너뛴다
-                # (제3자 대화로 오판돼 무응답이 되는 걸 방지).
-                is_direct_address = is_dm or is_mentioned
-
-                ai_reply, attachments = await self.llm_service.generate_response(
-                    session_id, clean_prompt, author_id=message.author.id, author_name=message.author.display_name,
-                    is_direct_address=is_direct_address,
-                )
-
-                # RP 제3자 대화로 판정돼 응답이 생략된 경우 — 대화 기록엔 남았으니 아무것도 보내지 않는다.
-                if ai_reply is None:
-                    return
-
-                # 답장 전송 (이미지/음성 생성 tool이 호출됐으면 첨부 파일도 함께 전송)
-                ai_reply = _truncate_for_discord(ai_reply)
-                files = _build_discord_files(attachments) if attachments else []
-                if files:
-                    await message.reply(content=ai_reply, files=files)
-                else:
-                    await message.reply(ai_reply)
-            except Exception as e:
-                log.exception("LLM 대화 응답 처리 중 에러 발생")
-                await message.reply(_truncate_for_discord(f"❌ LLM 응답 중 오류가 발생했습니다: {str(e)}"))
+        await chat_orchestrator.handle_message(self, message, is_dm=is_dm, is_mentioned=is_mentioned)
 
 
 def create_bot() -> TaeyulBot:
