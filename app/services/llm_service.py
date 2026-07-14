@@ -10,6 +10,8 @@ from langchain_groq import ChatGroq
 
 from app.utils.file_tool import FS_TOOLS
 from app.utils.media_tools import MediaSink, make_media_tools
+from app.utils import rp_store
+from app.utils.rp_prompt import build_rp_prompt_block
 
 _MAX_TOOL_ROUNDS = 4
 
@@ -259,6 +261,20 @@ class LLMService:
             prompt_sections = [persona_prompt] if persona_prompt else []
             if is_owner and owner_context_prompt:
                 prompt_sections.append(owner_context_prompt)
+
+            # RP(롤플레이) 모드: !rp 시작으로 활성화된 채널/DM에서는 페르소나 위에
+            # RP 출력 규칙(씬 앵커/기울임체 행동/발화자 구분 등)을 추가로 얹는다.
+            rp_active = rp_store.is_active(session_id)
+            if rp_active:
+                room = rp_store.get_room(session_id)
+                turn = rp_store.increment_turn(session_id)
+                alias = rp_store.get_alias(session_id, author_id) or author_name or ""
+                recent_text = " ".join(
+                    _extract_text(m.content) for m in context_messages[-8:]
+                )
+                prompt_sections.append(
+                    build_rp_prompt_block(room.get("opening", ""), turn, recent_text, alias)
+                )
             # 참고: ausboss/DiscordLangAgent MAINTEMPLATE — 장문 설명 대신 실제 발화 예시(few-shot)로
             # 톤을 보여주는 방식. 대화 기록 "이름: 내용" 표기가 모델 응답에 새는 걸 막는 지시만 남기고
             # 나머지는 위 페르소나 문서에 이미 있으므로 중복 서술하지 않는다.

@@ -73,7 +73,10 @@ def make_media_tools(sink: MediaSink, gemini_api_key: str, include_image: bool =
             return f"이미지 생성 실패: {_short_error(e)}"
         filename = f"{slugify_name(prompt)[:60]}.{image_ext_from_mime(mime)}"
         sink.items.append((img_bytes, filename))
-        return f"이미지 생성 완료: {filename} (자동으로 첨부됩니다)"
+        # 파일명(언더바 여러 개 포함 가능)을 텍스트로 노출하면 모델이 그대로 답변에 옮길 때
+        # 디스코드 마크다운이 "_..._" 구간을 기울임체로 오해석하는 문제가 있어, 파일명은
+        # 절대 텍스트로 돌려주지 않는다. 첨부 자체가 실제 파일명을 그대로 보여준다.
+        return "이미지 생성 완료 (자동으로 첨부됩니다)"
 
     @tool
     async def generate_taeyul_voice(text: str) -> str:
@@ -90,7 +93,7 @@ def make_media_tools(sink: MediaSink, gemini_api_key: str, include_image: bool =
             return f"음성 생성 실패: {_short_error(e)}"
         filename = f"{slugify_name(text)[:60]}.{ext}"
         sink.items.append((audio_bytes, filename))
-        return f"음성 파일 생성 완료: {filename} (자동으로 첨부됩니다)"
+        return "음성 파일 생성 완료 (자동으로 첨부됩니다)"
 
     tools = [generate_taeyul_voice]
     if include_image:

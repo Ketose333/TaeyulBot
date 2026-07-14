@@ -43,6 +43,10 @@ class TaeyulBot(commands.Bot):
         await self.load_extension("app.commands.horoscope")
         await self.load_extension("app.commands.emoji")
 
+        # RP(롤플레이) 모드 제어 — 서브커맨드 그룹이라 Cog가 아닌 tree에 직접 등록
+        from app.commands.roleplay import RoleplayGroup
+        self.tree.add_command(RoleplayGroup())
+
         # 재시작 후에도 버튼·드랍다운이 살아있도록 persistent view 등록
         from app.commands.horoscope import CompatibilityInviteView, FortuneView, StatsView, RankingView
         self.add_view(FortuneView.for_persistence())
@@ -81,7 +85,9 @@ class TaeyulBot(commands.Bot):
         if message.author.bot:
             return
 
-        # [필터 규칙 2] 기존 프리픽스 명령어 체계(!도움말 등)를 사용 중이라면 개입 차단
+        # [필터 규칙 2] 기존 프리픽스 명령어 체계(!도움말 등)를 사용 중이라면 개입 차단.
+        # RP(롤플레이) 모드 제어는 /롤플레이 시작·끝·이름·사용자명 슬래시 커맨드로 처리한다
+        # (app/commands/roleplay.py).
         if message.content.startswith('!'):
             return
 
@@ -106,8 +112,12 @@ class TaeyulBot(commands.Bot):
             from app.utils.channel_store import is_free_response_enabled
             is_free_channel = is_free_response_enabled(message.channel.id)
 
-            # 세 조건 중 하나라도 부합하지 않으면 무시
-            if not (is_mentioned or is_allowed_channel or is_free_channel):
+            # 조건 D: RP(롤플레이) 모드가 활성화된 채널인가? (!rp 시작으로 켜짐)
+            from app.utils import rp_store
+            is_rp_channel = rp_store.is_active(str(message.channel.id))
+
+            # 네 조건 중 하나라도 부합하지 않으면 무시
+            if not (is_mentioned or is_allowed_channel or is_free_channel or is_rp_channel):
                 return
 
         # ------------------ [ 조건 통과: LLM 연동 작동 ] ------------------
