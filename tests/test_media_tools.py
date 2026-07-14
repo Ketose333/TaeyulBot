@@ -1,6 +1,17 @@
 import pytest
 
-from app.utils.media_tools import MediaSink, make_media_tools
+from app.utils.media_tools import MediaSink, _short_error, make_media_tools
+
+
+def test_short_error_truncates_long_payload():
+    huge = "Gemini image generation failed (429): " + ("x" * 5000)
+    result = _short_error(RuntimeError(huge))
+    assert len(result) <= 210
+    assert result.endswith("...")
+
+
+def test_short_error_keeps_short_message_untouched():
+    assert _short_error(RuntimeError("짧은 오류")) == "짧은 오류"
 
 
 @pytest.mark.asyncio

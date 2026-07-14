@@ -12,6 +12,17 @@ from app.utils.gemini_tts import generate_tts
 log = logging.getLogger(__name__)
 
 _avatar_bytes_cache = None
+_ERROR_SUMMARY_LIMIT = 200
+
+
+def _short_error(e: Exception) -> str:
+    """Gemini API 에러는 쿼터 초과 시 수백 줄짜리 JSON 페이로드를 포함할 수 있다.
+    이걸 그대로 ToolMessage에 담으면 모델이 그 내용을 답변에 반영해 디스코드
+    2000자 제한을 넘길 수 있어, 앞부분만 잘라 짧은 요약으로 돌려준다."""
+    text = str(e).replace("\n", " ")
+    if len(text) > _ERROR_SUMMARY_LIMIT:
+        text = text[:_ERROR_SUMMARY_LIMIT] + "..."
+    return text
 
 
 def _load_avatar_bytes() -> bytes:
@@ -56,7 +67,7 @@ def make_media_tools(sink: MediaSink, gemini_api_key: str) -> list:
             )
         except Exception as e:
             log.warning("이미지 생성 실패: %s", e)
-            return f"이미지 생성 실패: {e}"
+            return f"이미지 생성 실패: {_short_error(e)}"
         filename = f"{slugify_name(prompt)[:60]}.{image_ext_from_mime(mime)}"
         sink.items.append((img_bytes, filename))
         return f"이미지 생성 완료: {filename} (자동으로 첨부됩니다)"
@@ -73,7 +84,7 @@ def make_media_tools(sink: MediaSink, gemini_api_key: str) -> list:
             audio_bytes, ext = await generate_tts(gemini_api_key, text)
         except Exception as e:
             log.warning("음성 생성 실패: %s", e)
-            return f"음성 생성 실패: {e}"
+            return f"음성 생성 실패: {_short_error(e)}"
         filename = f"{slugify_name(text)[:60]}.{ext}"
         sink.items.append((audio_bytes, filename))
         return f"음성 파일 생성 완료: {filename} (자동으로 첨부됩니다)"

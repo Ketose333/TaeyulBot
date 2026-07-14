@@ -8,6 +8,18 @@ from discord.ext import commands
 log = logging.getLogger(__name__)
 
 
+_DISCORD_MAX_MESSAGE_LEN = 2000
+
+
+def _truncate_for_discord(text: str, limit: int = _DISCORD_MAX_MESSAGE_LEN) -> str:
+    """디스코드 메시지 길이 제한(2000자)을 넘기면 400 Bad Request로 전송 자체가 실패하므로
+    응답 원인과 무관하게 항상 안전하게 잘라서 보낸다."""
+    if len(text) <= limit:
+        return text
+    suffix = "\n…(생략)"
+    return text[: limit - len(suffix)] + suffix
+
+
 def _build_discord_files(attachments) -> list:
     files = []
     for data, name in attachments:
@@ -123,6 +135,7 @@ class TaeyulBot(commands.Bot):
                 )
 
                 # 답장 전송 (이미지/음성 생성 tool이 호출됐으면 첨부 파일도 함께 전송)
+                ai_reply = _truncate_for_discord(ai_reply)
                 files = _build_discord_files(attachments) if attachments else []
                 if files:
                     await message.reply(content=ai_reply, files=files)
@@ -130,7 +143,7 @@ class TaeyulBot(commands.Bot):
                     await message.reply(ai_reply)
             except Exception as e:
                 log.exception("LLM 대화 응답 처리 중 에러 발생")
-                await message.reply(f"❌ LLM 응답 중 오류가 발생했습니다: {str(e)}")
+                await message.reply(_truncate_for_discord(f"❌ LLM 응답 중 오류가 발생했습니다: {str(e)}"))
 
 
 def create_bot() -> TaeyulBot:
