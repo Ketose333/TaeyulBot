@@ -53,7 +53,8 @@ class RoleplayGroup(app_commands.Group):
 
             trigger = 주제.strip() or _DEFAULT_OPENING_TRIGGER
             ai_reply, attachments = await client.llm_service.generate_response(
-                session_id, trigger, author_id=interaction.user.id, author_name=interaction.user.display_name
+                session_id, trigger, author_id=interaction.user.id, author_name=interaction.user.display_name,
+                is_direct_address=True,
             )
             ai_reply = truncate_for_discord(ai_reply)
             files = build_discord_files(attachments) if attachments else []

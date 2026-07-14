@@ -1,4 +1,4 @@
-from app.utils.rp_prompt import build_rp_prompt_block
+from app.utils.rp_prompt import build_rp_prompt_block, has_placeholder_pattern, looks_truncated
 
 
 def test_early_turn_anchor_is_strong():
@@ -45,3 +45,27 @@ def test_default_safety_style_has_no_immersive_rule(monkeypatch):
     monkeypatch.delenv("RP_SAFETY_STYLE", raising=False)
     block = build_rp_prompt_block("", 1, "", "선배")
     assert "현실 안전 가이드" not in block
+
+
+def test_looks_truncated_detects_particle_ending():
+    assert looks_truncated("그는 손을") is True
+
+
+def test_looks_truncated_false_for_complete_sentence():
+    assert looks_truncated("그는 손을 내밀었다.") is False
+
+
+def test_looks_truncated_true_for_empty_text():
+    assert looks_truncated("") is True
+
+
+def test_looks_truncated_false_for_ellipsis_ending():
+    assert looks_truncated("그리고 침묵이 흘렀다...") is False
+
+
+def test_has_placeholder_pattern_detects_bracket():
+    assert has_placeholder_pattern("여기에 [정확한 목적어]를 넣어") is True
+
+
+def test_has_placeholder_pattern_false_for_normal_text():
+    assert has_placeholder_pattern("평범한 대사야") is False

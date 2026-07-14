@@ -120,6 +120,158 @@ def test_channel_settings():
             assert settings["model"] == "Groq"
 
 @pytest.mark.asyncio
+async def test_rp_skip_reply_when_judge_says_skip(tmp_path, monkeypatch):
+    """제3자끼리의 대화로 판정되면 응답 없이(None) 대화 기록만 남긴다."""
+    from app.utils import rp_store
+
+    monkeypatch.setattr(rp_store, "ROOMS_PATH", str(tmp_path / "rp_rooms.json"))
+    rp_store.start_room("rp-skip", opening="장면")
+
+    with tempfile.TemporaryDirectory() as tmpdir:
+        history_file = os.path.join(tmpdir, "chat_history.json")
+        with patch("app.services.llm_service.LLMService.__init__", lambda self: None):
+            svc = LLMService()
+            svc.history_file_path = history_file
+            svc.locks = {}
+            svc.gemini_api_key = "x"
+            svc.groq_api_key = ""
+            svc.gemini_llm = MagicMock()
+            svc.gemini_llm.bind_tools = lambda tools: svc.gemini_llm
+
+            async def mock_ainvoke(messages, stop=None):
+                resp = MagicMock()
+                resp.tool_calls = None
+                if len(messages) == 1 and "REPLY 또는 SKIP" in str(messages[0].content):
+                    resp.content = "SKIP"
+                else:
+                    resp.content = "이건 호출되면 안 됨"
+                return resp
+
+            svc.gemini_llm.ainvoke = mock_ainvoke
+
+            reply, attachments = await svc.generate_response(
+                "rp-skip", "다른사람: 안녕", author_name="관찰자"
+            )
+
+            assert reply is None
+            assert attachments == []
+            history = svc._load_history_unsafe("rp-skip")
+            assert len(history) == 1
+            assert isinstance(history[0], HumanMessage)
+
+
+@pytest.mark.asyncio
+async def test_rp_replies_when_judge_says_reply(tmp_path, monkeypatch):
+    from app.utils import rp_store
+
+    monkeypatch.setattr(rp_store, "ROOMS_PATH", str(tmp_path / "rp_rooms.json"))
+    rp_store.start_room("rp-reply", opening="장면")
+
+    with tempfile.TemporaryDirectory() as tmpdir:
+        history_file = os.path.join(tmpdir, "chat_history.json")
+        with patch("app.services.llm_service.LLMService.__init__", lambda self: None):
+            svc = LLMService()
+            svc.history_file_path = history_file
+            svc.locks = {}
+            svc.gemini_api_key = "x"
+            svc.groq_api_key = ""
+            svc.gemini_llm = MagicMock()
+            svc.gemini_llm.bind_tools = lambda tools: svc.gemini_llm
+
+            async def mock_ainvoke(messages, stop=None):
+                resp = MagicMock()
+                resp.tool_calls = None
+                if len(messages) == 1 and "REPLY 또는 SKIP" in str(messages[0].content):
+                    resp.content = "REPLY"
+                else:
+                    resp.content = "정상 응답이야."
+                return resp
+
+            svc.gemini_llm.ainvoke = mock_ainvoke
+
+            reply, attachments = await svc.generate_response(
+                "rp-reply", "한태율아 뭐해", author_name="유저"
+            )
+
+            assert reply == "정상 응답이야."
+
+
+@pytest.mark.asyncio
+async def test_rp_direct_address_skips_judge(tmp_path, monkeypatch):
+    """멘션/DM 등으로 직접 불렸으면 판정 없이 항상 응답한다."""
+    from app.utils import rp_store
+
+    monkeypatch.setattr(rp_store, "ROOMS_PATH", str(tmp_path / "rp_rooms.json"))
+    rp_store.start_room("rp-direct", opening="장면")
+
+    with tempfile.TemporaryDirectory() as tmpdir:
+        history_file = os.path.join(tmpdir, "chat_history.json")
+        with patch("app.services.llm_service.LLMService.__init__", lambda self: None):
+            svc = LLMService()
+            svc.history_file_path = history_file
+            svc.locks = {}
+            svc.gemini_api_key = "x"
+            svc.groq_api_key = ""
+            svc.gemini_llm = MagicMock()
+            svc.gemini_llm.bind_tools = lambda tools: svc.gemini_llm
+
+            call_count = {"n": 0}
+
+            async def mock_ainvoke(messages, stop=None):
+                call_count["n"] += 1
+                resp = MagicMock()
+                resp.tool_calls = None
+                resp.content = "직접 응답이야."
+                return resp
+
+            svc.gemini_llm.ainvoke = mock_ainvoke
+
+            reply, attachments = await svc.generate_response(
+                "rp-direct", "한태율아", author_name="유저", is_direct_address=True
+            )
+
+            assert reply == "직접 응답이야."
+            assert call_count["n"] == 1  # 판정 호출 없이 바로 생성 1회만
+
+
+@pytest.mark.asyncio
+async def test_rp_retries_once_on_truncated_response(tmp_path, monkeypatch):
+    from app.utils import rp_store
+
+    monkeypatch.setattr(rp_store, "ROOMS_PATH", str(tmp_path / "rp_rooms.json"))
+    rp_store.start_room("rp-retry", opening="장면")
+
+    with tempfile.TemporaryDirectory() as tmpdir:
+        history_file = os.path.join(tmpdir, "chat_history.json")
+        with patch("app.services.llm_service.LLMService.__init__", lambda self: None):
+            svc = LLMService()
+            svc.history_file_path = history_file
+            svc.locks = {}
+            svc.gemini_api_key = "x"
+            svc.groq_api_key = ""
+            svc.gemini_llm = MagicMock()
+            svc.gemini_llm.bind_tools = lambda tools: svc.gemini_llm
+
+            call_count = {"n": 0}
+
+            async def mock_ainvoke(messages, stop=None):
+                call_count["n"] += 1
+                resp = MagicMock()
+                resp.tool_calls = None
+                resp.content = "그는 손을" if call_count["n"] == 1 else "그는 손을 내밀었다."
+                return resp
+
+            svc.gemini_llm.ainvoke = mock_ainvoke
+
+            reply, attachments = await svc.generate_response(
+                "rp-retry", "장면 진행해줘", author_name="유저", is_direct_address=True
+            )
+
+            assert reply == "그는 손을 내밀었다."
+            assert call_count["n"] == 2
+
+
+@pytest.mark.asyncio
 async def test_llm_service_reset_history():
     from app.services.llm_service import LLMService
     import tempfile

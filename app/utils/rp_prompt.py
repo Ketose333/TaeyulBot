@@ -1,10 +1,36 @@
 import os
+import re
 
 # 씬 전환 신호 감지 키워드. openclaw rp_engine.py의 transition_kw를 그대로 포팅.
 _TRANSITION_KEYWORDS = (
     "다음", "이제", "그럼", "넘어가", "장면", "전환", "바꾸", "정리",
     "next", "scene", "move on", "switch", "shift",
 )
+
+# 문장이 조사/어미에서 끊긴 흔적으로 보는 꼬리 문자들. openclaw rp_engine.py의 bad_tail 포팅.
+_TRUNCATED_BAD_TAIL = ("을", "를", "이", "가", "에", "로", "와", "과", "며", "고", "서", "데", "는", "은")
+
+
+def looks_truncated(text: str) -> bool:
+    """응답이 문장 중간(조사/어미)에서 잘린 것처럼 보이는지 판단한다."""
+    t = (text or "").strip()
+    if not t:
+        return True
+    if t.endswith(("…", "...", "…\"")):
+        return False
+    if t[-1] in ",，:：":
+        return True
+    if t[-1] in ".!?。！？":
+        return False
+    if t.endswith(_TRUNCATED_BAD_TAIL):
+        return True
+    last = t.split()[-1] if t.split() else t
+    return len(last) <= 2
+
+
+def has_placeholder_pattern(text: str) -> bool:
+    """[예시]처럼 채워지지 않은 대괄호 플레이스홀더가 남아있는지 판단한다."""
+    return bool(re.search(r"\[[^\]\n]{1,80}\]", text or ""))
 
 
 def _derive_scene_anchor(opening: str, turn_count: int, recent_text: str) -> tuple[str, str]:

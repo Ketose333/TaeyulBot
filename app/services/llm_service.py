@@ -11,7 +11,7 @@ from langchain_groq import ChatGroq
 from app.utils.file_tool import FS_TOOLS
 from app.utils.media_tools import MediaSink, make_media_tools
 from app.utils import rp_store
-from app.utils.rp_prompt import build_rp_prompt_block
+from app.utils.rp_prompt import build_rp_prompt_block, has_placeholder_pattern, looks_truncated
 
 _MAX_TOOL_ROUNDS = 4
 
@@ -218,11 +218,49 @@ class LLMService:
 
         return response
 
+    async def _rp_should_skip_reply(
+        self, context_messages: list, author_name: str, user_message: str
+    ) -> bool:
+        """RP 활성 채널에서 봇이 직접 불린 게 아닌 메시지에 대해 응답할지 판정한다.
+        제3자끼리의 대화로 보이면 True(SKIP)를 돌려줘서, 원본 openclaw RP 가이드의
+        "제3자 대화 상황에선 자연스럽게 빠졌다가, 다시 불리면 복귀" 흐름을 재현한다."""
+        engine = self._get_llm_engine("gemini", 0.0) or self._get_llm_engine("groq", 0.0)
+        if engine is None or not hasattr(engine, "ainvoke"):
+            return False  # 판정 엔진이 없으면 항상 응답(안전한 기본값)
+
+        recent = context_messages[-6:]
+        transcript = "\n".join(f"- {_extract_text(m.content)}" for m in recent) or "- (대화 없음)"
+        judge_prompt = (
+            "다음은 디스코드 RP(롤플레이) 채널의 최근 대화다. 마지막 메시지가 한태율(RP 상대역)에게 "
+            "말을 거는 것인지, 아니면 다른 참가자들끼리 나누는 대화인지 판단해.\n"
+            "기준: 한태율을 직접 부르거나 한태율의 직전 행동/대사에 반응하는 내용이면 REPLY, "
+            "다른 사람들끼리의 잡담/사이드 대화면 SKIP.\n"
+            "출력은 REPLY 또는 SKIP 한 단어만.\n\n"
+            f"최근 대화:\n{transcript}\n\n"
+            f"마지막 메시지: {author_name}: {user_message}"
+        )
+        try:
+            response = await engine.ainvoke([HumanMessage(content=judge_prompt)])
+            verdict = _extract_text(response.content).strip().upper()
+            return verdict.startswith("SKIP")
+        except Exception as e:
+            log.warning("RP 응답 여부 판정 실패, 기본값(응답)으로 진행: %s", e)
+            return False
+
     async def generate_response(
-        self, session_id: str, user_message: str, author_id: str = None, author_name: str = None
+        self,
+        session_id: str,
+        user_message: str,
+        author_id: str = None,
+        author_name: str = None,
+        is_direct_address: bool = False,
     ):
         """반환값: (ai_text, attachments). attachments는 [(bytes, filename), ...]이며
-        이미지/음성 생성 tool이 호출되지 않았으면 빈 리스트."""
+        이미지/음성 생성 tool이 호출되지 않았으면 빈 리스트. RP 활성 채널에서 제3자 대화로
+        판정돼 응답을 건너뛰면 ai_text가 None이다(대화 기록에는 남기되 아무 것도 보내지 않는다).
+
+        is_direct_address: 멘션/DM 등으로 봇에게 직접 말을 건 것이 확실하면 True로 넘겨
+        RP 응답 여부 판정을 건너뛰고 항상 응답한다."""
         # Load channel settings
         from app.utils.channel_settings import get_channel_settings
         try:
@@ -262,9 +300,17 @@ class LLMService:
             if is_owner and owner_context_prompt:
                 prompt_sections.append(owner_context_prompt)
 
-            # RP(롤플레이) 모드: !rp 시작으로 활성화된 채널/DM에서는 페르소나 위에
+            # RP(롤플레이) 모드: /롤플레이 시작으로 활성화된 채널/DM에서는 페르소나 위에
             # RP 출력 규칙(씬 앵커/기울임체 행동/발화자 구분 등)을 추가로 얹는다.
             rp_active = rp_store.is_active(session_id)
+            if rp_active and not is_direct_address:
+                if await self._rp_should_skip_reply(context_messages, author_name or "", user_message):
+                    # 제3자끼리의 대화로 판정 — 대화 기록엔 남기되 응답은 보내지 않는다.
+                    await asyncio.to_thread(self._save_history_unsafe, session_id, history)
+                    log.info("RP 제3자 대화로 판정, 응답 생략: session=%s", session_id)
+                    return None, []
+
+            room = None
             if rp_active:
                 room = rp_store.get_room(session_id)
                 turn = rp_store.increment_turn(session_id)
@@ -322,6 +368,30 @@ class LLMService:
 
             if not ai_content:
                 raise RuntimeError("Both Google Gemini and Groq API calls failed or were not configured.")
+
+            # RP 모드에서 문장이 중간에 잘렸거나 대괄호 플레이스홀더([예시] 등)가 남아있으면
+            # 같은 엔진으로 한 번만 재시도한다(openclaw rp_engine.py의 재시도 로직 포팅).
+            if rp_active and (looks_truncated(ai_content) or has_placeholder_pattern(ai_content)):
+                retry_notes = []
+                if has_placeholder_pattern(ai_content):
+                    retry_notes.append("방금 답변에 대괄호 플레이스홀더([예시] 등)가 섞여 있었어. 실제 내용으로 채워서 다시 답해줘.")
+                if looks_truncated(ai_content):
+                    retry_notes.append("방금 답변이 문장 중간에서 끊긴 것 같아. 같은 내용을 완결된 문장으로 다시 답해줘.")
+                try:
+                    retry_messages = llm_messages + [
+                        AIMessage(content=ai_content),
+                        HumanMessage(content=" ".join(retry_notes)),
+                    ]
+                    retry_response = await self._invoke_with_tools(
+                        eng_instance, retry_messages, is_owner, media_sink, stop=stop_sequences
+                    )
+                    retry_content = _strip_leaked_speaker_labels(
+                        _extract_text(retry_response.content), [author_name, "한태율"]
+                    )
+                    if retry_content and not has_placeholder_pattern(retry_content):
+                        ai_content = retry_content
+                except Exception as e:
+                    log.warning("RP 응답 재시도 실패, 기존 응답 유지: %s", e)
 
             # Update and save history
             history.append(AIMessage(content=ai_content))

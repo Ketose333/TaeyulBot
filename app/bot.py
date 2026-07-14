@@ -84,12 +84,13 @@ class TaeyulBot(commands.Bot):
 
         # [필터 규칙 4] DM 채널인지 체크 (DM 채널은 무조건 통과)
         is_dm = isinstance(message.channel, discord.DMChannel)
+        is_mentioned = False
 
         if not is_dm:
             # 일반 채널일 경우 조건부 개입
             # 조건 A: 봇 계정이 명확하게 태그(@한태율) 되었는가?
             is_mentioned = self.user.mentioned_in(message)
-            
+
             # 조건 B: 특정 전용 채널 혹은 AI 전용 스레드 이름 규칙(예: "AI-대화")에 부합하는가?
             is_allowed_channel = False
             if hasattr(message.channel, 'name') and message.channel.name:
@@ -127,9 +128,18 @@ class TaeyulBot(commands.Bot):
                 if not hasattr(self, 'llm_service'):
                     self.llm_service = LLMService()
                 
+                # 멘션/DM처럼 봇에게 직접 말을 건 게 확실하면 RP 응답 여부 판정을 건너뛴다
+                # (제3자 대화로 오판돼 무응답이 되는 걸 방지).
+                is_direct_address = is_dm or is_mentioned
+
                 ai_reply, attachments = await self.llm_service.generate_response(
-                    session_id, clean_prompt, author_id=message.author.id, author_name=message.author.display_name
+                    session_id, clean_prompt, author_id=message.author.id, author_name=message.author.display_name,
+                    is_direct_address=is_direct_address,
                 )
+
+                # RP 제3자 대화로 판정돼 응답이 생략된 경우 — 대화 기록엔 남았으니 아무것도 보내지 않는다.
+                if ai_reply is None:
+                    return
 
                 # 답장 전송 (이미지/음성 생성 tool이 호출됐으면 첨부 파일도 함께 전송)
                 ai_reply = _truncate_for_discord(ai_reply)
