@@ -4,11 +4,38 @@ import logging
 import asyncio
 from typing import List, Dict
 
-from langchain_core.messages import HumanMessage, AIMessage, BaseMessage, SystemMessage
+from langchain_core.messages import HumanMessage, AIMessage, BaseMessage, SystemMessage, ToolMessage
 from langchain_google_genai import ChatGoogleGenerativeAI
 from langchain_groq import ChatGroq
 
+from app.utils.file_tool import FS_TOOLS
+
+_FS_TOOLS_BY_NAME = {t.name: t for t in FS_TOOLS}
+_MAX_TOOL_ROUNDS = 4
+
 log = logging.getLogger(__name__)
+
+_PERSONA_DIR = os.path.join(os.path.dirname(__file__), "..", "persona")
+
+
+def _read_persona_file(filename: str) -> str:
+    path = os.path.join(_PERSONA_DIR, filename)
+    if not os.path.exists(path):
+        return ""
+    with open(path, "r", encoding="utf-8") as f:
+        return f.read()
+
+
+def _build_persona_prompt() -> str:
+    # SOUL/IDENTITY/EMOTION은 항상 로드되는 페르소나 원문. MEMORY/USER는 오너 개인정보를
+    # 담고 있어 owner 세션에서만 별도로 주입한다(AGENTS.md의 "MEMORY.md는 메인 세션에서만" 규칙과 동일).
+    sections = [_read_persona_file(f) for f in ("SOUL.md", "IDENTITY.md", "EMOTION.md")]
+    return "\n\n---\n\n".join(s for s in sections if s)
+
+
+def _build_owner_context_prompt() -> str:
+    sections = [_read_persona_file(f) for f in ("USER.md", "MEMORY.md")]
+    return "\n\n---\n\n".join(s for s in sections if s)
 
 def _serialize_message(msg: BaseMessage) -> dict:
     if isinstance(msg, HumanMessage):
@@ -55,6 +82,10 @@ class LLMService:
             os.path.dirname(__file__), "..", "..", "data", "chat_history.json"
         )
         self.locks: Dict[str, asyncio.Lock] = {}
+
+        self.owner_discord_id = os.getenv("OWNER_DISCORD_ID", "").strip()
+        self.persona_prompt = _build_persona_prompt()
+        self.owner_context_prompt = _build_owner_context_prompt()
 
     def _get_llm_engine(self, engine_name: str, temperature: float):
         # Support unit test mocks
@@ -132,7 +163,35 @@ class LLMService:
         except Exception as e:
             log.error("Failed to save chat history for session %s: %s", session_id, e)
 
-    async def generate_response(self, session_id: str, user_message: str) -> str:
+    async def _invoke_with_tools(self, eng_instance, messages: list, allow_fs_tools: bool):
+        if not allow_fs_tools or not hasattr(eng_instance, "bind_tools"):
+            return await eng_instance.ainvoke(messages)
+
+        bound = eng_instance.bind_tools(FS_TOOLS)
+        current_messages = list(messages)
+        response = await bound.ainvoke(current_messages)
+
+        rounds = 0
+        while getattr(response, "tool_calls", None) and rounds < _MAX_TOOL_ROUNDS:
+            current_messages.append(response)
+            for call in response.tool_calls:
+                tool_fn = _FS_TOOLS_BY_NAME.get(call["name"])
+                if tool_fn is None:
+                    result = f"알 수 없는 도구: {call['name']}"
+                else:
+                    try:
+                        result = await tool_fn.ainvoke(call["args"])
+                    except Exception as e:
+                        result = f"도구 실행 실패: {e}"
+                current_messages.append(ToolMessage(content=str(result), tool_call_id=call["id"]))
+            response = await bound.ainvoke(current_messages)
+            rounds += 1
+
+        return response
+
+    async def generate_response(
+        self, session_id: str, user_message: str, author_id: str = None, author_name: str = None
+    ) -> str:
         # Load channel settings
         from app.utils.channel_settings import get_channel_settings
         try:
@@ -152,19 +211,33 @@ class LLMService:
         async with session_lock:
             history = await asyncio.to_thread(self._load_history_unsafe, session_id)
             
-            # Append new user message to the active history
-            history.append(HumanMessage(content=user_message))
+            # 여러 디스코드 사용자를 구분/비교할 수 있도록 "이름: 내용" 형태로 저장한다
+            # (참고: ausboss/DiscordLangAgent의 f"{name}: {message_content}" 패턴).
+            stored_message = f"{author_name}: {user_message}" if author_name else user_message
+            history.append(HumanMessage(content=stored_message))
             
             # Slice messages to the last 30 for context window limit
             context_messages = history[-30:]
 
-            # System prompt to ensure polite, natural Korean and defined persona
-            system_message = SystemMessage(
-                content=(
-                    "당신은 사주와 운세를 봐주고 편안하게 대화를 나눌 수 있는 친절하고 다정한 디스코드 봇 '한태율'입니다. "
-                    "사용자에게 반말이나 거친 표현은 피하고, 정중하고 부드러운 한국어 구어체(해요체)로 답변해 주세요."
-                )
+            # 페르소나 원문(SOUL/IDENTITY/EMOTION) 기반 시스템 프롬프트.
+            # owner(OWNER_DISCORD_ID) 세션에서만 USER.md/MEMORY.md(개인정보 포함)를 추가로 주입한다.
+            persona_prompt = getattr(self, "persona_prompt", "") or _build_persona_prompt()
+            owner_discord_id = getattr(self, "owner_discord_id", "")
+            owner_context_prompt = getattr(self, "owner_context_prompt", "")
+
+            is_owner = bool(owner_discord_id and author_id is not None and str(author_id) == owner_discord_id)
+
+            prompt_sections = [persona_prompt] if persona_prompt else []
+            if is_owner and owner_context_prompt:
+                prompt_sections.append(owner_context_prompt)
+            prompt_sections.append(
+                "당신은 사주와 운세를 봐주는 디스코드 봇이기도 합니다. 위 페르소나 톤을 유지하면서 "
+                "사주/운세 질문에도 자연스럽게 답해 주세요. 대화 기록의 사용자 메시지는 "
+                "\"이름: 내용\" 형태로 표시됩니다. 같은 채널에 여러 사람이 섞여 있을 수 있으니 "
+                "이름으로 발언자를 구분하고, 여러 사용자의 말을 비교/요약해 달라는 요청에는 "
+                "이름을 명시해서 답하세요."
             )
+            system_message = SystemMessage(content="\n\n---\n\n".join(prompt_sections))
             llm_messages = [system_message] + context_messages
 
             ai_content = ""
@@ -183,7 +256,7 @@ class LLMService:
                 if eng_instance:
                     try:
                         log.info("Attempting %s API call (temp=%s) for session %s...", eng_name, temperature, session_id)
-                        response = await eng_instance.ainvoke(llm_messages)
+                        response = await self._invoke_with_tools(eng_instance, llm_messages, is_owner)
                         ai_content = _extract_text(response.content)
                         engine_used = eng_name
                         break

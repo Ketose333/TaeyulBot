@@ -107,7 +107,9 @@ class TaeyulBot(commands.Bot):
                 if not hasattr(self, 'llm_service'):
                     self.llm_service = LLMService()
                 
-                ai_reply = await self.llm_service.generate_response(session_id, clean_prompt)
+                ai_reply = await self.llm_service.generate_response(
+                    session_id, clean_prompt, author_id=message.author.id, author_name=message.author.display_name
+                )
                 
                 # 답장 전송
                 await message.reply(ai_reply)
