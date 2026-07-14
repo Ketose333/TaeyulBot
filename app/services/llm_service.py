@@ -9,8 +9,8 @@ from langchain_google_genai import ChatGoogleGenerativeAI
 from langchain_groq import ChatGroq
 
 from app.utils.file_tool import FS_TOOLS
+from app.utils.media_tools import MediaSink, make_media_tools
 
-_FS_TOOLS_BY_NAME = {t.name: t for t in FS_TOOLS}
 _MAX_TOOL_ROUNDS = 4
 
 log = logging.getLogger(__name__)
@@ -179,11 +179,17 @@ class LLMService:
         except Exception as e:
             log.error("Failed to save chat history for session %s: %s", session_id, e)
 
-    async def _invoke_with_tools(self, eng_instance, messages: list, allow_fs_tools: bool, stop: list = None):
-        if not allow_fs_tools or not hasattr(eng_instance, "bind_tools"):
+    async def _invoke_with_tools(self, eng_instance, messages: list, allow_fs_tools: bool, media_sink, stop: list = None):
+        if not hasattr(eng_instance, "bind_tools"):
             return await eng_instance.ainvoke(messages, stop=stop)
 
-        bound = eng_instance.bind_tools(FS_TOOLS)
+        # 파일시스템 도구(FS_TOOLS)는 owner 세션에서만, 이미지/음성 생성 도구는
+        # 게이팅 없이 전체 유저에게 항상 노출한다.
+        tools = list(FS_TOOLS) if allow_fs_tools else []
+        tools += make_media_tools(media_sink, self.gemini_api_key)
+        tools_by_name = {t.name: t for t in tools}
+
+        bound = eng_instance.bind_tools(tools)
         current_messages = list(messages)
         response = await bound.ainvoke(current_messages, stop=stop)
 
@@ -191,7 +197,7 @@ class LLMService:
         while getattr(response, "tool_calls", None) and rounds < _MAX_TOOL_ROUNDS:
             current_messages.append(response)
             for call in response.tool_calls:
-                tool_fn = _FS_TOOLS_BY_NAME.get(call["name"])
+                tool_fn = tools_by_name.get(call["name"])
                 if tool_fn is None:
                     result = f"알 수 없는 도구: {call['name']}"
                 else:
@@ -207,7 +213,9 @@ class LLMService:
 
     async def generate_response(
         self, session_id: str, user_message: str, author_id: str = None, author_name: str = None
-    ) -> str:
+    ):
+        """반환값: (ai_text, attachments). attachments는 [(bytes, filename), ...]이며
+        이미지/음성 생성 tool이 호출되지 않았으면 빈 리스트."""
         # Load channel settings
         from app.utils.channel_settings import get_channel_settings
         try:
@@ -266,6 +274,7 @@ class LLMService:
 
             ai_content = ""
             engine_used = ""
+            media_sink = MediaSink()
 
             # Determine primary and fallback engines based on settings
             if preferred_model == "Groq":
@@ -280,7 +289,9 @@ class LLMService:
                 if eng_instance:
                     try:
                         log.info("Attempting %s API call (temp=%s) for session %s...", eng_name, temperature, session_id)
-                        response = await self._invoke_with_tools(eng_instance, llm_messages, is_owner, stop=stop_sequences)
+                        response = await self._invoke_with_tools(
+                            eng_instance, llm_messages, is_owner, media_sink, stop=stop_sequences
+                        )
                         ai_content = _extract_text(response.content)
                         ai_content = _strip_leaked_speaker_labels(ai_content, [author_name, "한태율"])
                         engine_used = eng_name
@@ -296,4 +307,4 @@ class LLMService:
             await asyncio.to_thread(self._save_history_unsafe, session_id, history)
 
         log.info("Successfully generated response for session %s using %s.", session_id, engine_used)
-        return ai_content
+        return ai_content, media_sink.items

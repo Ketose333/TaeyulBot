@@ -45,26 +45,33 @@ async def test_llm_service_fallback_behavior():
             svc = LLMService()
             svc.history_file_path = history_file
             svc.locks = {}
+            svc.gemini_api_key = ""
+            svc.groq_api_key = ""
             svc.gemini_llm = MagicMock()
             svc.groq_llm = MagicMock()
-            
+
             # Setup mock invoke to fail for Gemini and succeed for Groq
             async def mock_gemini_ainvoke(*args, **kwargs):
                 raise ValueError("Gemini quota exceeded")
-                
+
             async def mock_groq_ainvoke(*args, **kwargs):
                 mock_response = MagicMock()
                 mock_response.content = "Groq response"
+                mock_response.tool_calls = None
                 return mock_response
-                
+
             svc.gemini_llm.ainvoke = mock_gemini_ainvoke
             svc.groq_llm.ainvoke = mock_groq_ainvoke
-            
+            # bind_tools()는 자기 자신을 반환하게 해서 위 ainvoke 목이 그대로 쓰이게 한다
+            svc.gemini_llm.bind_tools = lambda tools: svc.gemini_llm
+            svc.groq_llm.bind_tools = lambda tools: svc.groq_llm
+
             # Call generate_response
-            reply = await svc.generate_response("session-1", "test prompt")
-            
+            reply, attachments = await svc.generate_response("session-1", "test prompt")
+
             # Should fall back and return Groq response
             assert reply == "Groq response"
+            assert attachments == []
             
             # Check history saved
             history = svc._load_history_unsafe("session-1")

@@ -1,10 +1,21 @@
 import os
 import logging
+from io import BytesIO
 
 import discord
 from discord.ext import commands
 
 log = logging.getLogger(__name__)
+
+
+def _build_discord_files(attachments) -> list:
+    files = []
+    for data, name in attachments:
+        try:
+            files.append(discord.File(BytesIO(data), filename=name))
+        except Exception:
+            log.exception("첨부 파일 변환 실패: name=%s", name)
+    return files
 
 
 class TaeyulBot(commands.Bot):
@@ -107,12 +118,16 @@ class TaeyulBot(commands.Bot):
                 if not hasattr(self, 'llm_service'):
                     self.llm_service = LLMService()
                 
-                ai_reply = await self.llm_service.generate_response(
+                ai_reply, attachments = await self.llm_service.generate_response(
                     session_id, clean_prompt, author_id=message.author.id, author_name=message.author.display_name
                 )
-                
-                # 답장 전송
-                await message.reply(ai_reply)
+
+                # 답장 전송 (이미지/음성 생성 tool이 호출됐으면 첨부 파일도 함께 전송)
+                files = _build_discord_files(attachments) if attachments else []
+                if files:
+                    await message.reply(content=ai_reply, files=files)
+                else:
+                    await message.reply(ai_reply)
             except Exception as e:
                 log.exception("LLM 대화 응답 처리 중 에러 발생")
                 await message.reply(f"❌ LLM 응답 중 오류가 발생했습니다: {str(e)}")
