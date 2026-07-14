@@ -226,10 +226,10 @@ async def test_compatibility_request_registers_target_and_edits_message():
     )
 
     with (
-        patch("app.commands.horoscope.get_zodiac", return_value="사자자리"),
-        patch("app.commands.horoscope.set_zodiac") as set_zodiac,
+        patch("app.commands.horoscope_ui.get_zodiac", return_value="사자자리"),
+        patch("app.commands.horoscope_ui.set_zodiac") as set_zodiac,
         patch(
-            "app.commands.horoscope.get_compatibility",
+            "app.commands.horoscope_ui.get_compatibility",
             return_value={
                 "emoji": "⚡", "score": 55, "relation": "상극", "description": "테스트 풀이",
             },
@@ -273,8 +273,8 @@ async def test_send_stats_is_public_and_defers_before_generating_chart():
         return BytesIO(b"chart")
 
     with (
-        patch("app.commands.horoscope.get_sign_stats", return_value=stats),
-        patch("app.commands.horoscope.asyncio.to_thread", side_effect=fake_to_thread),
+        patch("app.commands.horoscope_ui.get_sign_stats", return_value=stats),
+        patch("app.commands.horoscope_ui.asyncio.to_thread", side_effect=fake_to_thread),
     ):
         await _send_stats(interaction, "사자자리")
 
