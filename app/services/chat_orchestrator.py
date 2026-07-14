@@ -13,19 +13,23 @@ def evaluate_message_routing(bot, message: discord.Message, is_dm: bool) -> tupl
         return True, False
 
     is_mentioned = bot.user.mentioned_in(message)
+    if is_mentioned:
+        return True, is_mentioned
 
     is_allowed_channel = False
     if hasattr(message.channel, 'name') and message.channel.name:
         is_allowed_channel = message.channel.name.startswith("AI-") or message.channel.name == "llm-타임"
+    if is_allowed_channel:
+        return True, is_mentioned
 
+    # 여기부터는 디스크 I/O가 필요한 조건이라, 멘션/채널명으로 이미 결정됐으면 건너뛴다.
     from app.utils.channel_settings import is_free_response_enabled
-    is_free_channel = is_free_response_enabled(message.channel.id)
+    if is_free_response_enabled(message.channel.id):
+        return True, is_mentioned
 
     from app.utils import rp_store
     is_rp_channel = rp_store.is_active(str(message.channel.id))
-
-    should_respond = is_mentioned or is_allowed_channel or is_free_channel or is_rp_channel
-    return should_respond, is_mentioned
+    return is_rp_channel, is_mentioned
 
 
 async def handle_message(bot, message: discord.Message, *, is_dm: bool, is_mentioned: bool) -> None:
@@ -39,10 +43,6 @@ async def handle_message(bot, message: discord.Message, *, is_dm: bool, is_menti
                 return
 
             session_id = str(message.channel.id)
-
-            from app.services.llm_service import LLMService
-            if not hasattr(bot, 'llm_service'):
-                bot.llm_service = LLMService()
 
             # 멘션/DM처럼 봇에게 직접 말을 건 게 확실하면 RP 응답 여부 판정을 건너뛴다
             # (제3자 대화로 오판돼 무응답이 되는 걸 방지).

@@ -46,10 +46,8 @@ class BotSettingsCog(commands.Cog):
     @app_commands.allowed_installs(guilds=True, users=True)
     @app_commands.allowed_contexts(guilds=True, dms=True, private_channels=True)
     async def reset_chat_history(self, interaction: discord.Interaction) -> None:
-        from app.services.llm_service import LLMService
-        llm_service = LLMService()
         session_id = str(interaction.channel.id)
-        await llm_service.reset_history(session_id)
+        await interaction.client.llm_service.reset_history(session_id)
         await interaction.response.send_message(
             "🔮 **대화 기억이 깔끔하게 초기화되었습니다. 새로운 대화를 시작해 주세요!**",
             ephemeral=False,
