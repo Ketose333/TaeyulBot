@@ -31,6 +31,7 @@ class TaeyulBot(commands.Bot):
         self.llm_service = LLMService()
 
         await self.load_extension("app.commands.horoscope")
+        await self.load_extension("app.commands.bot_settings")
         await self.load_extension("app.commands.emoji")
 
         # RP(롤플레이) 모드 제어 — 서브커맨드 그룹이라 Cog가 아닌 tree에 직접 등록
