@@ -96,7 +96,7 @@ class TaeyulBot(commands.Bot):
                 is_allowed_channel = message.channel.name.startswith("AI-") or message.channel.name == "llm-타임"
 
             # 조건 C: 자유 대화 허용 채널 설정 여부 검증
-            from app.utils.channel_store import is_free_response_enabled
+            from app.utils.channel_settings import is_free_response_enabled
             is_free_channel = is_free_response_enabled(message.channel.id)
 
             # 조건 D: RP(롤플레이) 모드가 활성화된 채널인가? (!rp 시작으로 켜짐)

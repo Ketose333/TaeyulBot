@@ -972,7 +972,7 @@ class HoroscopeCog(commands.Cog):
             )
             return
 
-        from app.utils.channel_store import enable_free_response, disable_free_response
+        from app.utils.channel_settings import enable_free_response, disable_free_response
         
         channel_id = interaction.channel.id
         if 설정:

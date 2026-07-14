@@ -82,11 +82,11 @@ async def test_llm_service_fallback_behavior():
             assert history[1].content == "Groq response"
 
 def test_channel_store():
-    from app.utils.channel_store import enable_free_response, disable_free_response, is_free_response_enabled
-    
+    from app.utils.channel_settings import enable_free_response, disable_free_response, is_free_response_enabled
+
     with tempfile.TemporaryDirectory() as tmpdir:
         temp_channels_file = os.path.join(tmpdir, "free_channels.json")
-        with patch("app.utils.channel_store.CHANNELS_PATH", temp_channels_file):
+        with patch("app.utils.channel_settings.CHANNELS_PATH", temp_channels_file):
             # Initially false
             assert not is_free_response_enabled(999)
             
