@@ -8,6 +8,7 @@ from langchain_core.messages import HumanMessage, AIMessage, BaseMessage, System
 from langchain_google_genai import ChatGoogleGenerativeAI
 from langchain_groq import ChatGroq
 
+from app.config import GEMINI_API_KEY, GROQ_API_KEY, LANGCHAIN_API_KEY, OWNER_DISCORD_ID
 from app.utils.file_tool import FS_TOOLS
 from app.utils.media_tools import MediaSink, make_media_tools
 from app.utils import rp_store
@@ -89,24 +90,23 @@ def _extract_text(content) -> str:
 class LLMService:
     def __init__(self):
         # LangSmith tracing (Optional)
-        langchain_api_key = os.getenv("LANGCHAIN_API_KEY", "")
-        if langchain_api_key.strip():
+        if LANGCHAIN_API_KEY.strip():
             os.environ["LANGCHAIN_TRACING_V2"] = "true"
-            os.environ["LANGCHAIN_API_KEY"] = langchain_api_key
+            os.environ["LANGCHAIN_API_KEY"] = LANGCHAIN_API_KEY
             os.environ["LANGCHAIN_PROJECT"] = "taeyulbot-llm-chat"
             log.info("LangSmith tracing enabled.")
         else:
             log.info("LangSmith tracing not enabled (API key missing or empty).")
 
-        self.gemini_api_key = os.getenv("GEMINI_API_KEY", "")
-        self.groq_api_key = os.getenv("GROQ_API_KEY", "")
+        self.gemini_api_key = GEMINI_API_KEY
+        self.groq_api_key = GROQ_API_KEY
 
         self.history_file_path = os.path.join(
             os.path.dirname(__file__), "..", "..", "data", "chat_history.json"
         )
         self.locks: Dict[str, asyncio.Lock] = {}
 
-        self.owner_discord_id = os.getenv("OWNER_DISCORD_ID", "").strip()
+        self.owner_discord_id = OWNER_DISCORD_ID
         self.persona_prompt = _build_persona_prompt()
         self.owner_context_prompt = _build_owner_context_prompt()
 

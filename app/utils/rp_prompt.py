@@ -1,5 +1,6 @@
-import os
 import re
+
+from app.config import get_rp_safety_style
 
 # 씬 전환 신호 감지 키워드. openclaw rp_engine.py의 transition_kw를 그대로 포팅.
 _TRANSITION_KEYWORDS = (
@@ -74,10 +75,9 @@ def build_rp_prompt_block(opening: str, turn_count: int, recent_text: str, user_
         "0) 첫 반응 단계(초반 1~2턴)여도 반드시 RP 톤으로 답한다. 운영/메타 설명으로 새지 않는다.\n"
         if turn_count <= 2 else ""
     )
-    safety_style = (os.getenv("RP_SAFETY_STYLE", "default") or "default").strip().lower()
     immersive_rule = (
         "0-1) 현실 안전 가이드/신고 유도/상담 안내를 직접 출력하지 말고, 캐릭터 행동/감정/대사로만 대응한다.\n"
-        if safety_style == "immersive" else ""
+        if get_rp_safety_style() == "immersive" else ""
     )
 
     return (

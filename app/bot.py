@@ -1,9 +1,9 @@
-import os
 import logging
 
 import discord
 from discord.ext import commands
 
+from app.config import GUILD_ID
 from app.utils.discord_reply import build_discord_files, truncate_for_discord
 
 log = logging.getLogger(__name__)
@@ -46,12 +46,11 @@ class TaeyulBot(commands.Bot):
         log.info("슬래시 커맨드 글로벌 동기화 완료 (전파까지 최대 1시간 소요)")
 
         # 개발 중 즉시 반영이 필요하면 GUILD_ID 설정
-        guild_id = os.getenv("GUILD_ID")
-        if guild_id:
-            guild = discord.Object(id=int(guild_id))
+        if GUILD_ID:
+            guild = discord.Object(id=int(GUILD_ID))
             self.tree.copy_global_to(guild=guild)
             await self.tree.sync(guild=guild)
-            log.info("개발용 길드 즉시 동기화 완료 (GUILD_ID=%s)", guild_id)
+            log.info("개발용 길드 즉시 동기화 완료 (GUILD_ID=%s)", GUILD_ID)
 
     async def on_ready(self) -> None:
         await self.change_presence(activity=discord.Game(name="한태율 | /운세순위"))

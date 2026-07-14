@@ -1,6 +1,5 @@
 import asyncio
 import logging
-import os
 
 from dotenv import load_dotenv
 
@@ -12,11 +11,12 @@ logging.basicConfig(
 )
 
 from app.bot import create_bot
+from app.config import get_discord_token
 
 
 async def main() -> None:
     bot = create_bot()
-    token = os.environ["DISCORD_TOKEN"]
+    token = get_discord_token()
     async with bot:
         await bot.start(token)
 
