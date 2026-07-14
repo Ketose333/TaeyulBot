@@ -50,6 +50,22 @@ def _deserialize_message(data: dict) -> BaseMessage:
     else:
         return AIMessage(content=data["content"])
 
+def _strip_leaked_speaker_labels(text: str, speaker_names: List[str]) -> str:
+    """대화 기록의 "이름: 내용" 표기를 모델이 자기 응답에서 흉내내는 걸 방지하는 후처리.
+    ausboss/DiscordLangAgent의 detect_and_replace와 동일한 안전망(stop 시퀀스가 못 막았을 때 대비)."""
+    result = text
+    for name in filter(None, speaker_names):
+        marker = f"{name}:"
+        # 응답 맨 앞에 자기/상대 이름표가 붙어 나온 경우 제거
+        if result.startswith(marker):
+            result = result[len(marker):].lstrip()
+        # 중간에 새 화자 턴을 지어내기 시작한 경우, 그 지점부터 잘라낸다
+        cut_at = result.find(f"\n{marker}")
+        if cut_at != -1:
+            result = result[:cut_at].rstrip()
+    return result
+
+
 def _extract_text(content) -> str:
     if isinstance(content, str):
         return content
@@ -163,13 +179,13 @@ class LLMService:
         except Exception as e:
             log.error("Failed to save chat history for session %s: %s", session_id, e)
 
-    async def _invoke_with_tools(self, eng_instance, messages: list, allow_fs_tools: bool):
+    async def _invoke_with_tools(self, eng_instance, messages: list, allow_fs_tools: bool, stop: list = None):
         if not allow_fs_tools or not hasattr(eng_instance, "bind_tools"):
-            return await eng_instance.ainvoke(messages)
+            return await eng_instance.ainvoke(messages, stop=stop)
 
         bound = eng_instance.bind_tools(FS_TOOLS)
         current_messages = list(messages)
-        response = await bound.ainvoke(current_messages)
+        response = await bound.ainvoke(current_messages, stop=stop)
 
         rounds = 0
         while getattr(response, "tool_calls", None) and rounds < _MAX_TOOL_ROUNDS:
@@ -184,7 +200,7 @@ class LLMService:
                     except Exception as e:
                         result = f"도구 실행 실패: {e}"
                 current_messages.append(ToolMessage(content=str(result), tool_call_id=call["id"]))
-            response = await bound.ainvoke(current_messages)
+            response = await bound.ainvoke(current_messages, stop=stop)
             rounds += 1
 
         return response
@@ -230,15 +246,23 @@ class LLMService:
             prompt_sections = [persona_prompt] if persona_prompt else []
             if is_owner and owner_context_prompt:
                 prompt_sections.append(owner_context_prompt)
+            # 참고: ausboss/DiscordLangAgent MAINTEMPLATE — 장문 설명 대신 실제 발화 예시(few-shot)로
+            # 톤을 보여주는 방식. 대화 기록 "이름: 내용" 표기가 모델 응답에 새는 걸 막는 지시만 남기고
+            # 나머지는 위 페르소나 문서에 이미 있으므로 중복 서술하지 않는다.
             prompt_sections.append(
-                "당신은 사주와 운세를 봐주는 디스코드 봇이기도 합니다. 위 페르소나 톤을 유지하면서 "
-                "사주/운세 질문에도 자연스럽게 답해 주세요. 대화 기록의 사용자 메시지는 "
-                "\"이름: 내용\" 형태로 표시됩니다. 같은 채널에 여러 사람이 섞여 있을 수 있으니 "
-                "이름으로 발언자를 구분하고, 여러 사용자의 말을 비교/요약해 달라는 요청에는 "
-                "이름을 명시해서 답하세요."
+                "다음은 한태율이 실제로 답하는 예시입니다(형식만 참고, 문장 그대로 반복 금지):\n"
+                "한태율: 응, 좋아 바로 확인해볼게.\n"
+                "한태율: 맞아 그 지적 정확해, 바로 고칠게.\n\n"
+                "대화 기록의 \"이름: 내용\" 표기는 발화자 구분용일 뿐 당신이 따라 할 형식이 아닙니다. "
+                "답변 앞에 \"이름:\"을 붙이거나 새 화자 턴을 지어내지 말고, 본문 안에서만 이름을 언급해 "
+                "발언자를 구분하세요."
             )
             system_message = SystemMessage(content="\n\n---\n\n".join(prompt_sections))
             llm_messages = [system_message] + context_messages
+
+            # DiscordLangAgent의 stop_sequence(f"{name}:") 패턴: 모델이 새 화자 턴을 지어내기
+            # 시작하는 순간 생성을 끊는다.
+            stop_sequences = list(filter(None, {f"{author_name}:" if author_name else None, "한태율:"}))
 
             ai_content = ""
             engine_used = ""
@@ -256,8 +280,9 @@ class LLMService:
                 if eng_instance:
                     try:
                         log.info("Attempting %s API call (temp=%s) for session %s...", eng_name, temperature, session_id)
-                        response = await self._invoke_with_tools(eng_instance, llm_messages, is_owner)
+                        response = await self._invoke_with_tools(eng_instance, llm_messages, is_owner, stop=stop_sequences)
                         ai_content = _extract_text(response.content)
+                        ai_content = _strip_leaked_speaker_labels(ai_content, [author_name, "한태율"])
                         engine_used = eng_name
                         break
                     except Exception as e:

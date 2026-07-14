@@ -3,8 +3,20 @@ import tempfile
 import pytest
 from unittest.mock import patch, MagicMock
 
-from app.services.llm_service import LLMService, _serialize_message, _deserialize_message
+from app.services.llm_service import LLMService, _serialize_message, _deserialize_message, _strip_leaked_speaker_labels
 from langchain_core.messages import HumanMessage, AIMessage
+
+def test_strip_leaked_speaker_labels_leading():
+    text = "김은성: 발표 잘 될 거야! 긴장하지 마."
+    assert _strip_leaked_speaker_labels(text, ["김은성", "한태율"]) == "발표 잘 될 거야! 긴장하지 마."
+
+def test_strip_leaked_speaker_labels_hallucinated_turn():
+    text = "그래, 잘 될 거야!\n김은성: 고마워\n한태율: 힘내"
+    assert _strip_leaked_speaker_labels(text, ["김은성", "한태율"]) == "그래, 잘 될 거야!"
+
+def test_strip_leaked_speaker_labels_no_match_untouched():
+    text = "결론: 오늘 운세는 좋아."
+    assert _strip_leaked_speaker_labels(text, ["김은성", "한태율"]) == text
 
 def test_serialization():
     msg = HumanMessage(content="hello")
