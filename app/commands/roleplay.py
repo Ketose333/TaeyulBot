@@ -44,6 +44,8 @@ class RoleplayGroup(app_commands.Group):
         session_id = str(target_channel.id)
         rp_store.start_room(session_id, opening=주제)
 
+        opening_text = "RP 시작했어. 이제 그냥 채팅하면 돼."
+        files = []
         try:
             from app.services.llm_service import LLMService
 
@@ -56,17 +58,28 @@ class RoleplayGroup(app_commands.Group):
                 session_id, trigger, author_id=interaction.user.id, author_name=interaction.user.display_name,
                 is_direct_address=True,
             )
-            ai_reply = truncate_for_discord(ai_reply)
-            files = build_discord_files(attachments) if attachments else []
-            await target_channel.send(content=ai_reply, files=files)
+            if ai_reply:
+                opening_text = truncate_for_discord(ai_reply)
+                files = build_discord_files(attachments) if attachments else []
         except Exception:
-            log.exception("RP 오프닝 생성 실패")
-            await target_channel.send("RP 시작했어. 이제 그냥 채팅하면 돼.")
+            log.exception("RP 오프닝 생성 실패, 기본 안내 문구로 진행")
 
+        # interaction.followup.send()는 인터랙션 토큰 기반이라 봇이 해당 채널/길드에
+        # 실제 멤버가 아닌 컨텍스트(User-Installed App 등)에서도 항상 동작한다.
+        # channel.send()(REST 채널 API)는 그런 컨텍스트에서 실패할 수 있으므로,
+        # 그 경우에도 반드시 followup으로 폴백해서 응답이 "생각 중..."에 멈추지 않게 한다.
+        sent_in_thread = False
         if made_thread:
+            try:
+                await target_channel.send(content=opening_text, files=files)
+                sent_in_thread = True
+            except Exception:
+                log.exception("RP 스레드에 오프닝 전송 실패, interaction 응답으로 폴백")
+
+        if made_thread and sent_in_thread:
             await interaction.followup.send(f"RP 시작했어. {target_channel.mention}에서 이어갈게.")
         else:
-            await interaction.followup.send("RP 시작했어.")
+            await interaction.followup.send(content=opening_text, files=files)
 
     @app_commands.command(name="끝", description="이 채널/DM에서 RP 모드를 종료합니다.")
     @app_commands.allowed_installs(guilds=True, users=True)

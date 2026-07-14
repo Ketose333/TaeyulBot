@@ -40,7 +40,8 @@ def test_start_in_dm_uses_current_channel_and_posts_opening(tmp_path, monkeypatc
     call_args = interaction.client.llm_service.generate_response.await_args
     assert call_args.args[0] == "555"
     assert call_args.args[1] == "폐쇄된 연구소"
-    interaction.followup.send.assert_awaited_once_with("RP 시작했어.")
+    # DM/스레드 미생성 시엔 채널 전송 없이 interaction 응답 자체로 오프닝을 보낸다.
+    interaction.followup.send.assert_awaited_once_with(content="오프닝 대사", files=[])
 
 
 def test_start_in_text_channel_creates_dedicated_thread(tmp_path, monkeypatch):
@@ -69,6 +70,35 @@ def test_start_in_text_channel_creates_dedicated_thread(tmp_path, monkeypatch):
     assert rp_store.is_active("999") is True
     thread.send.assert_awaited_once()
     interaction.followup.send.assert_awaited_once_with("RP 시작했어. <#999>에서 이어갈게.")
+
+
+def test_start_falls_back_to_followup_when_thread_send_fails(tmp_path, monkeypatch):
+    """봇이 실제 멤버가 아닌 컨텍스트(User-Installed App 등)에서 channel.send()가
+    실패해도 interaction.followup.send()가 반드시 호출돼 "생각 중..."에 멈추지 않아야 한다."""
+    monkeypatch.setattr(rp_store, "ROOMS_PATH", str(tmp_path / "rp_rooms.json"))
+    group = RoleplayGroup()
+
+    thread = MagicMock(spec=discord.Thread)
+    thread.id = 999
+    thread.mention = "<#999>"
+    thread.send = AsyncMock(side_effect=Exception("no channel access (User-Installed App)"))
+
+    origin_channel = MagicMock(spec=discord.TextChannel)
+    origin_channel.create_thread = AsyncMock(return_value=thread)
+
+    interaction = SimpleNamespace(
+        channel=origin_channel,
+        user=SimpleNamespace(id=111, display_name="테스터"),
+        client=_make_client(),
+        response=SimpleNamespace(defer=AsyncMock()),
+        followup=SimpleNamespace(send=AsyncMock()),
+    )
+
+    # 예외를 던지지 않고 정상적으로 followup 응답까지 도달해야 한다.
+    asyncio.run(group.start.callback(group, interaction, "폐쇄된 연구소"))
+
+    thread.send.assert_awaited_once()
+    interaction.followup.send.assert_awaited_once_with(content="오프닝 대사", files=[])
 
 
 def test_start_uses_default_trigger_when_topic_empty(tmp_path, monkeypatch):
