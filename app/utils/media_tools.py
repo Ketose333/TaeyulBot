@@ -44,9 +44,12 @@ class MediaSink:
     tts_used: bool = False
 
 
-def make_media_tools(sink: MediaSink, gemini_api_key: str) -> list:
+def make_media_tools(sink: MediaSink, gemini_api_key: str, include_image: bool = True) -> list:
     """요청마다 새로 호출해서 만드는 tool 팩토리. sink를 클로저로 캡처하므로
-    동시에 처리되는 다른 세션의 결과와 섞이지 않는다."""
+    동시에 처리되는 다른 세션의 결과와 섞이지 않는다.
+
+    include_image=False면 이미지 생성 도구를 LLM에 아예 노출하지 않는다
+    (예: Gemini 무료 티어 이미지 모델 쿼터가 0으로 막혀있을 때 임시 비활성화용)."""
 
     @tool
     async def generate_taeyul_image(prompt: str, profile: str = "taeyul", allow_2d: bool = False) -> str:
@@ -89,4 +92,7 @@ def make_media_tools(sink: MediaSink, gemini_api_key: str) -> list:
         sink.items.append((audio_bytes, filename))
         return f"음성 파일 생성 완료: {filename} (자동으로 첨부됩니다)"
 
-    return [generate_taeyul_image, generate_taeyul_voice]
+    tools = [generate_taeyul_voice]
+    if include_image:
+        tools.insert(0, generate_taeyul_image)
+    return tools

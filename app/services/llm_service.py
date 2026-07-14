@@ -13,6 +13,11 @@ from app.utils.media_tools import MediaSink, make_media_tools
 
 _MAX_TOOL_ROUNDS = 4
 
+# Gemini 무료 티어의 이미지 생성 모델(nano-banana-pro-preview 등) 쿼터가 0으로 막혀 있고
+# 결제 계정을 연결하지 않기로 해서, 대안이 정해지기 전까지 이미지 생성 도구를 LLM에서 임시로 뺀다.
+# 음성 생성(TTS)은 별도 모델이라 영향 없음.
+_ENABLE_IMAGE_GENERATION = False
+
 log = logging.getLogger(__name__)
 
 _PERSONA_DIR = os.path.join(os.path.dirname(__file__), "..", "persona")
@@ -186,7 +191,7 @@ class LLMService:
         # 파일시스템 도구(FS_TOOLS)는 owner 세션에서만, 이미지/음성 생성 도구는
         # 게이팅 없이 전체 유저에게 항상 노출한다.
         tools = list(FS_TOOLS) if allow_fs_tools else []
-        tools += make_media_tools(media_sink, self.gemini_api_key)
+        tools += make_media_tools(media_sink, self.gemini_api_key, include_image=_ENABLE_IMAGE_GENERATION)
         tools_by_name = {t.name: t for t in tools}
 
         bound = eng_instance.bind_tools(tools)

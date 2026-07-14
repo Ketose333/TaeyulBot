@@ -14,6 +14,20 @@ def test_short_error_keeps_short_message_untouched():
     assert _short_error(RuntimeError("짧은 오류")) == "짧은 오류"
 
 
+def test_make_media_tools_default_includes_image_and_voice():
+    sink = MediaSink()
+    tools = make_media_tools(sink, "fake-api-key")
+    names = {t.name for t in tools}
+    assert names == {"generate_taeyul_image", "generate_taeyul_voice"}
+
+
+def test_make_media_tools_include_image_false_excludes_image_tool():
+    sink = MediaSink()
+    tools = make_media_tools(sink, "fake-api-key", include_image=False)
+    names = {t.name for t in tools}
+    assert names == {"generate_taeyul_voice"}
+
+
 @pytest.mark.asyncio
 async def test_generate_taeyul_image_appends_to_sink_and_limits_to_once(monkeypatch):
     monkeypatch.setattr(
