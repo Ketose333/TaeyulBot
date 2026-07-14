@@ -1,27 +1,9 @@
 import asyncio
-import base64
 import io
-import json
-import urllib.error
-import urllib.request
 import wave
 
+from app.utils.gemini_client import _blocking_post, extract_inline_data
 from app.utils.generation_defaults import DEFAULT_TTS_MODEL, DEFAULT_TTS_VOICE
-
-
-def _blocking_post(url: str, body: dict) -> dict:
-    req = urllib.request.Request(
-        url,
-        data=json.dumps(body, ensure_ascii=False).encode("utf-8"),
-        headers={"Content-Type": "application/json; charset=utf-8"},
-        method="POST",
-    )
-    try:
-        with urllib.request.urlopen(req, timeout=180) as resp:
-            return json.loads(resp.read().decode("utf-8", errors="replace"))
-    except urllib.error.HTTPError as e:
-        payload = e.read().decode("utf-8", errors="replace")
-        raise RuntimeError(f"Gemini TTS failed ({e.code}): {payload}") from e
 
 
 async def call_tts(api_key: str, model: str, text: str, voice: str) -> dict:
@@ -35,19 +17,15 @@ async def call_tts(api_key: str, model: str, text: str, voice: str) -> dict:
             },
         },
     }
-    return await asyncio.to_thread(_blocking_post, url, body)
+    return await asyncio.to_thread(_blocking_post, url, body, error_prefix="Gemini TTS failed")
 
 
 def extract_audio(payload: dict) -> tuple:
-    candidates = payload.get("candidates", [])
-    for c in candidates:
-        parts = c.get("content", {}).get("parts", [])
-        for p in parts:
-            inline = p.get("inlineData") or p.get("inline_data")
-            if inline and inline.get("data"):
-                mime = (inline.get("mimeType") or inline.get("mime_type") or "audio/wav").lower()
-                return base64.b64decode(inline["data"]), mime
-    raise RuntimeError("응답에서 오디오 데이터를 찾지 못함")
+    return extract_inline_data(
+        payload,
+        default_mime="audio/wav",
+        not_found_message="응답에서 오디오 데이터를 찾지 못함",
+    )
 
 
 def ext_from_mime(mime: str) -> str:
