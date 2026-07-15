@@ -25,7 +25,7 @@ def _short_error(e: Exception) -> str:
     return text
 
 
-def _load_avatar_bytes() -> bytes:
+def load_avatar_bytes() -> bytes:
     global _avatar_bytes_cache
     if _avatar_bytes_cache is None:
         with open(DEFAULT_TAEYUL_REF_IMAGE, "rb") as f:
@@ -64,7 +64,7 @@ def make_media_tools(sink: MediaSink, gemini_api_key: str, include_image: bool =
             img_bytes, mime, _ = await generate_image_with_fallback(
                 gemini_api_key,
                 prompt,
-                ref_image_bytes=_load_avatar_bytes(),
+                ref_image_bytes=load_avatar_bytes(),
                 profile=profile,
                 allow_2d=allow_2d,
             )

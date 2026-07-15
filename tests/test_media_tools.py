@@ -31,7 +31,7 @@ def test_make_media_tools_include_image_false_excludes_image_tool():
 @pytest.mark.asyncio
 async def test_generate_taeyul_image_appends_to_sink_and_limits_to_once(monkeypatch):
     monkeypatch.setattr(
-        "app.utils.media_tools._load_avatar_bytes", lambda: b"fake-avatar-bytes"
+        "app.utils.media_tools.load_avatar_bytes", lambda: b"fake-avatar-bytes"
     )
 
     async def fake_generate(*args, **kwargs):
@@ -86,7 +86,7 @@ async def test_generate_taeyul_voice_appends_to_sink_and_limits_to_once(monkeypa
 @pytest.mark.asyncio
 async def test_generate_taeyul_image_failure_returns_message_without_appending(monkeypatch):
     monkeypatch.setattr(
-        "app.utils.media_tools._load_avatar_bytes", lambda: b"fake-avatar-bytes"
+        "app.utils.media_tools.load_avatar_bytes", lambda: b"fake-avatar-bytes"
     )
 
     async def failing_generate(*args, **kwargs):
