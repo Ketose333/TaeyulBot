@@ -408,8 +408,8 @@ class JalButton(discord.ui.Button):
     async def callback(self, interaction: discord.Interaction) -> None:
         path = _jal_image_path(self.rank)
         if path and os.path.exists(path):
-            await interaction.message.reply(file=discord.File(path), mention_author=False)
             await interaction.response.defer()
+            await interaction.message.reply(file=discord.File(path), mention_author=False)
         else:
             await interaction.response.send_message(
                 "이미지 파일이 없습니다. `assets/jalsalge.png` 또는 `assets/jalgage.png`를 추가해주세요.",

@@ -46,7 +46,11 @@ class MediaCog(commands.Cog):
             return
 
         filename = f"{slugify_name(프롬프트)[:60]}.{image_ext_from_mime(mime)}"
-        await interaction.followup.send(file=discord.File(io.BytesIO(img_bytes), filename=filename))
+        try:
+            await interaction.followup.send(file=discord.File(io.BytesIO(img_bytes), filename=filename))
+        except discord.HTTPException:
+            log.exception("이미지 첨부 전송 실패: prompt=%s", 프롬프트)
+            await interaction.followup.send("❌ 이미지 생성은 됐지만 전송에 실패했습니다.")
 
     @app_commands.command(name="음성생성", description="텍스트를 한태율 목소리 음성 파일로 만듭니다.")
     @app_commands.describe(텍스트="음성으로 만들 텍스트")
@@ -66,7 +70,11 @@ class MediaCog(commands.Cog):
             return
 
         filename = f"{slugify_name(텍스트)[:60]}.{ext}"
-        await interaction.followup.send(file=discord.File(io.BytesIO(audio_bytes), filename=filename))
+        try:
+            await interaction.followup.send(file=discord.File(io.BytesIO(audio_bytes), filename=filename))
+        except discord.HTTPException:
+            log.exception("음성 첨부 전송 실패: text=%s", 텍스트)
+            await interaction.followup.send("❌ 음성 생성은 됐지만 전송에 실패했습니다.")
 
 
 async def setup(bot: commands.Bot) -> None:
