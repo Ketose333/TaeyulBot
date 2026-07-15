@@ -25,3 +25,15 @@ def build_discord_files(attachments) -> list:
         except Exception:
             log.exception("첨부 파일 변환 실패: name=%s", name)
     return files
+
+
+async def send_interaction_error(
+    interaction: discord.Interaction,
+    message: str = "처리 중 오류가 발생했습니다. 잠시 후 다시 시도해주세요.",
+) -> None:
+    """인터랙션 에러는 항상 요청자에게만(ephemeral) 보내고 예외 원문은 노출하지 않는다.
+    defer() 호출 여부에 따라 response/followup 중 안전한 경로를 자동으로 고른다."""
+    if interaction.response.is_done():
+        await interaction.followup.send(message, ephemeral=True)
+    else:
+        await interaction.response.send_message(message, ephemeral=True)

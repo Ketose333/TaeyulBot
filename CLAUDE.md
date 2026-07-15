@@ -43,7 +43,9 @@ tests/          pytest, 소스 파일당 test_{module}.py 1:1 대응
 @app_commands.allowed_contexts(guilds=True, dms=True, private_channels=True)
 ```
 
-시간이 걸리는 커맨드(외부 API 호출 등)는 `await interaction.response.defer(thinking=True)` 후 `interaction.followup.send(...)`로 응답한다. 실패는 `❌` 접두사 메시지로 짧게 안내하고 `log.exception`/`log.warning`으로 스택을 남긴다(사용자에게 원본 예외 텍스트를 그대로 노출하지 않는다 — `media_tools.py`의 `_short_error` 패턴 참고).
+시간이 걸리는 커맨드(외부 API 호출 등)는 `await interaction.response.defer(thinking=True)` 후 `interaction.followup.send(...)`로 응답한다.
+
+**에러 응답은 항상 `app.utils.discord_reply.send_interaction_error(interaction, message)`를 통해서만 보낸다** — `response`/`followup` 중 어느 쪽을 써야 하는지(`interaction.response.is_done()` 분기)를 대신 처리해주고, `ephemeral=True`(요청자에게만 표시)를 강제한다. 실패는 `❌` 접두사 메시지로 짧게 안내하고 `log.exception`/`log.warning`으로 스택을 남기되, 사용자에게 원본 예외 텍스트를 그대로 노출하지 않는다(긴 API 에러 페이로드는 `media_tools.py`의 `_short_error`로 잘라서 넘긴다). `interaction.response.send_message(...)`/`interaction.followup.send(...)`를 에러 전송에 직접 쓰지 않는다.
 
 ## LLM function-calling 도구 (자연어 트리거)
 

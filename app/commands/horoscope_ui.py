@@ -19,6 +19,7 @@ from app.commands.horoscope_embeds import (
 from app.services.horoscope_service import get_sign_fortune
 from app.services.stats_service import get_sign_stats
 from app.utils.date_utils import kst_now
+from app.utils.discord_reply import send_interaction_error
 from app.utils.saju_engine import get_compatibility, get_zodiac_by_birthday, parse_birthday
 from app.utils.stats_chart import generate_rank_chart
 from app.utils.user_store import get_zodiac, set_zodiac
@@ -93,16 +94,6 @@ async def _get_registered_sign_or_reply(interaction: discord.Interaction) -> str
         return sign
     await interaction.response.send_message(REGISTER_SIGN_MESSAGE, ephemeral=True)
     return None
-
-
-async def _send_interaction_error(
-    interaction: discord.Interaction,
-    message: str = "처리 중 오류가 발생했습니다. 잠시 후 다시 시도해주세요.",
-) -> None:
-    if interaction.response.is_done():
-        await interaction.followup.send(message, ephemeral=True)
-    else:
-        await interaction.response.send_message(message, ephemeral=True)
 
 
 async def _complete_compatibility_request(
@@ -197,7 +188,7 @@ class SignFortuneSelect(discord.ui.Select):
             data = get_sign_fortune(sign)
         except Exception:
             log.exception("별자리 운세 선택 처리 실패: sign=%s", sign)
-            await _send_interaction_error(interaction)
+            await send_interaction_error(interaction)
             return
         await interaction.response.edit_message(
             embed=_build_fortune_embed(sign, data),
@@ -220,7 +211,7 @@ class SignStatsSelect(discord.ui.Select):
             await _send_stats(interaction, self.values[0], edit=True)
         except Exception:
             log.exception("별자리 통계 선택 처리 실패: sign=%s", self.values[0])
-            await _send_interaction_error(interaction)
+            await send_interaction_error(interaction)
 
 
 class OtherUserSelect(discord.ui.UserSelect):
@@ -250,7 +241,7 @@ class OtherUserSelect(discord.ui.UserSelect):
                 )
         except Exception:
             log.exception("다른 이용자 통계 처리 실패: user_id=%s", target.id)
-            await _send_interaction_error(interaction)
+            await send_interaction_error(interaction)
 
 
 class RankingSignSelect(discord.ui.Select):
@@ -269,7 +260,7 @@ class RankingSignSelect(discord.ui.Select):
             data = get_sign_fortune(sign)
         except Exception:
             log.exception("순위에서 별자리 운세 처리 실패: sign=%s", sign)
-            await _send_interaction_error(interaction)
+            await send_interaction_error(interaction)
             return
         await interaction.response.send_message(
             embed=_build_fortune_embed(sign, data),
@@ -294,7 +285,7 @@ class StatsButton(discord.ui.Button):
             await _send_stats(interaction, sign, user=interaction.user)
         except Exception:
             log.exception("내 통계 처리 실패: user_id=%s", interaction.user.id)
-            await _send_interaction_error(interaction)
+            await send_interaction_error(interaction)
 
 
 class ProfileButton(discord.ui.Button):
@@ -318,7 +309,7 @@ class ProfileButton(discord.ui.Button):
             )
         except Exception:
             log.exception("프로필 처리 실패: user_id=%s", interaction.user.id)
-            await _send_interaction_error(interaction)
+            await send_interaction_error(interaction)
 
 
 class CompatibilitySignSelect(discord.ui.Select):
@@ -336,7 +327,7 @@ class CompatibilitySignSelect(discord.ui.Select):
             await _complete_compatibility_request(interaction, self.values[0])
         except Exception:
             log.exception("궁합 요청 별자리 등록 실패: user_id=%s", interaction.user.id)
-            await _send_interaction_error(interaction)
+            await send_interaction_error(interaction)
 
 
 class BirthdayRegistrationModal(discord.ui.Modal):
@@ -366,7 +357,7 @@ class BirthdayRegistrationModal(discord.ui.Modal):
             )
         except Exception:
             log.exception("궁합 요청 생일 등록 실패: user_id=%s", interaction.user.id)
-            await _send_interaction_error(interaction)
+            await send_interaction_error(interaction)
 
 
 class CompatibilityBirthdayButton(discord.ui.Button):

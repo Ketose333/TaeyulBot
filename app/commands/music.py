@@ -8,6 +8,7 @@ from discord import app_commands
 from discord.ext import commands
 
 from app.config import GROQ_API_KEY
+from app.utils.discord_reply import send_interaction_error
 from app.utils.generation_defaults import (
     DEFAULT_MUSIC_COUNTRY,
     DEFAULT_MUSIC_RECOMMEND_COUNT,
@@ -51,11 +52,11 @@ class MusicCog(commands.Cog):
             )
         except Exception:
             log.exception("음악 추천 실패: situation=%s", 상황)
-            await interaction.followup.send("❌ 음악 추천 중 오류가 발생했습니다.")
+            await send_interaction_error(interaction, "❌ 음악 추천 중 오류가 발생했습니다.")
             return
 
         if not tracks:
-            await interaction.followup.send("❌ 어울리는 곡을 찾지 못했습니다.")
+            await send_interaction_error(interaction, "❌ 어울리는 곡을 찾지 못했습니다.")
             return
 
         embed = discord.Embed(title=f"🎵 '{상황}'에 어울리는 곡", color=EMBED_COLOR)
