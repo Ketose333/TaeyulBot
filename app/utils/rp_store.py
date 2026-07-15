@@ -1,5 +1,6 @@
 import os
 from app.utils.json_store import atomic_write_json, read_json
+from app.utils.user_label import sanitize_display_label
 
 ROOMS_PATH = os.path.join(os.path.dirname(__file__), "..", "..", "data", "rp_rooms.json")
 
@@ -59,7 +60,7 @@ def set_alias(session_id: str, user_id: str, alias: str) -> None:
     data = _load()
     room = data.get(str(session_id), _default_room())
     alias_by_user = room.get("alias_by_user") or {}
-    alias = (alias or "").strip()
+    alias = sanitize_display_label(alias)
     if alias:
         alias_by_user[str(user_id)] = alias
     else:

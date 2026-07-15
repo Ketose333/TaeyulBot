@@ -3,6 +3,7 @@ import logging
 import discord
 
 from app.utils.discord_reply import build_discord_files, truncate_for_discord
+from app.utils.user_label import sanitize_display_label
 
 log = logging.getLogger(__name__)
 
@@ -49,7 +50,8 @@ async def handle_message(bot, message: discord.Message, *, is_dm: bool, is_menti
             is_direct_address = is_dm or is_mentioned
 
             ai_reply, attachments = await bot.llm_service.generate_response(
-                session_id, clean_prompt, author_id=message.author.id, author_name=message.author.display_name,
+                session_id, clean_prompt, author_id=message.author.id,
+                author_name=sanitize_display_label(message.author.display_name),
                 is_direct_address=is_direct_address,
             )
 

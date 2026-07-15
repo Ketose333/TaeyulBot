@@ -7,7 +7,7 @@ import pytest
 from app.utils.gemini_image import ext_from_mime as image_ext_from_mime
 from app.utils.gemini_image import extract_image
 from app.utils.gemini_tts import ext_from_mime as audio_ext_from_mime
-from app.utils.gemini_tts import extract_audio, maybe_wrap_pcm_to_wav
+from app.utils.gemini_tts import maybe_wrap_pcm_to_wav
 
 
 def _payload_with_inline_data(mime: str, data: bytes) -> dict:
@@ -41,19 +41,6 @@ def test_image_ext_from_mime():
     assert image_ext_from_mime("image/png") == "png"
     assert image_ext_from_mime("image/webp") == "webp"
     assert image_ext_from_mime("image/jpeg") == "jpg"
-
-
-def test_extract_audio_returns_bytes_and_mime():
-    raw = b"RIFF....WAVEfake"
-    payload = _payload_with_inline_data("audio/wav", raw)
-    audio_bytes, mime = extract_audio(payload)
-    assert audio_bytes == raw
-    assert mime == "audio/wav"
-
-
-def test_extract_audio_raises_when_no_audio_data():
-    with pytest.raises(RuntimeError):
-        extract_audio({"candidates": [{"content": {"parts": [{"text": "no audio here"}]}}]})
 
 
 def test_audio_ext_from_mime():

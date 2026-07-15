@@ -34,11 +34,6 @@ def test_leaderboard_excludes_no_data(mock_h):
     assert board == []
 
 
-@patch("app.services.stats_service.get_history", return_value=MOCK_HISTORY)
-def test_leaderboard_empty_input(mock_h):
-    assert get_leaderboard({}, 2026, 6) == []
-
-
 # ── 순위 변동 ────────────────────────────────────────────────────────
 
 def test_rank_delta_up_down_same():

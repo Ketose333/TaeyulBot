@@ -7,6 +7,7 @@ from discord import app_commands
 
 from app.utils import rp_store
 from app.utils.discord_reply import build_discord_files, truncate_for_discord
+from app.utils.user_label import sanitize_display_label
 
 log = logging.getLogger(__name__)
 
@@ -55,7 +56,8 @@ class RoleplayGroup(app_commands.Group):
 
             trigger = 주제.strip() or _DEFAULT_OPENING_TRIGGER
             ai_reply, attachments = await client.llm_service.generate_response(
-                session_id, trigger, author_id=interaction.user.id, author_name=interaction.user.display_name,
+                session_id, trigger, author_id=interaction.user.id,
+                author_name=sanitize_display_label(interaction.user.display_name),
                 is_direct_address=True,
             )
             if ai_reply:
@@ -102,9 +104,16 @@ class RoleplayGroup(app_commands.Group):
     @app_commands.allowed_contexts(guilds=True, dms=True, private_channels=True)
     async def set_alias(self, interaction: discord.Interaction, 호칭: str = "") -> None:
         session_id = str(interaction.channel.id)
-        rp_store.set_alias(session_id, interaction.user.id, 호칭)
-        if 호칭.strip():
-            await interaction.response.send_message(f"이제부터 '{호칭.strip()}'라고 부를게.")
+        # 사용자가 직접 입력하는 호칭도 닉네임과 동일한 프롬프트 인젝션 벡터이므로
+        # 저장 전에 커맨드 입력 시점에서부터 검증/정제하고, 실제 저장될 값을 그대로
+        # 되돌려줘 사용자가 어떤 문자열이 쓰이는지 알 수 있게 한다.
+        sanitized = sanitize_display_label(호칭)
+        rp_store.set_alias(session_id, interaction.user.id, sanitized)
+        if sanitized:
+            notice = ""
+            if sanitized != 호칭.strip():
+                notice = " (지시문처럼 보이는 문구나 특수문자, 20자를 넘는 부분은 제외했어.)"
+            await interaction.response.send_message(f"이제부터 '{sanitized}'라고 부를게.{notice}")
         else:
             await interaction.response.send_message("호칭 설정을 해제했어.")
 

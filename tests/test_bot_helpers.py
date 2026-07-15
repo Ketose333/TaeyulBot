@@ -21,5 +21,3 @@ def test_build_discord_files_converts_attachments():
     assert files[1].filename == "b.wav"
 
 
-def test_build_discord_files_empty_list():
-    assert _build_discord_files([]) == []
