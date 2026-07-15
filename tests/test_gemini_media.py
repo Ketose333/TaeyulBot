@@ -4,6 +4,7 @@ import io
 
 import pytest
 
+from app.utils.gemini_client import UNTRUSTED_CONTENT_GUARD, build_generate_content_body
 from app.utils.gemini_image import ext_from_mime as image_ext_from_mime
 from app.utils.gemini_image import extract_image
 from app.utils.gemini_tts import ext_from_mime as audio_ext_from_mime
@@ -63,3 +64,13 @@ def test_maybe_wrap_pcm_to_wav_wraps_raw_l16():
 def test_maybe_wrap_pcm_to_wav_passthrough_for_already_wav():
     raw = b"RIFF....WAVEfake"
     assert maybe_wrap_pcm_to_wav(raw, "audio/wav") == raw
+
+
+def test_build_generate_content_body_includes_injection_guard_and_passthrough():
+    parts = [{"text": "안녕"}]
+    gen_cfg = {"responseModalities": ["AUDIO"]}
+    body = build_generate_content_body(parts, gen_cfg)
+
+    assert body["systemInstruction"] == {"parts": [{"text": UNTRUSTED_CONTENT_GUARD}]}
+    assert body["contents"] == [{"parts": parts}]
+    assert body["generationConfig"] is gen_cfg

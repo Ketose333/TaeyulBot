@@ -32,13 +32,13 @@ class BotSettingsCog(commands.Cog):
         if 설정:
             enable_free_response(channel_id)
             await interaction.response.send_message(
-                f"🔮 **자유 대화 기능이 활성화되었습니다!**\n이 채널({interaction.channel.mention})에서 이제 봇 멘션 없이도 모든 질문에 답변합니다.",
+                f"💚 **자유 대화 기능이 활성화되었습니다!**\n이 채널({interaction.channel.mention})에서 이제 봇 멘션 없이도 모든 질문에 답변합니다.",
                 ephemeral=False,
             )
         else:
             disable_free_response(channel_id)
             await interaction.response.send_message(
-                f"🔮 **자유 대화 기능이 해제되었습니다.**\n이제 이 채널에서는 봇을 직접 멘션하거나 AI 채널 규칙일 때만 응답합니다.",
+                f"💚 **자유 대화 기능이 해제되었습니다.**\n이제 이 채널에서는 봇을 직접 멘션하거나 AI 채널 규칙일 때만 응답합니다.",
                 ephemeral=False,
             )
 
@@ -49,7 +49,7 @@ class BotSettingsCog(commands.Cog):
         session_id = str(interaction.channel.id)
         await interaction.client.llm_service.reset_history(session_id)
         await interaction.response.send_message(
-            "🔮 **대화 기억이 깔끔하게 초기화되었습니다. 새로운 대화를 시작해 주세요!**",
+            "💚 **대화 기억이 깔끔하게 초기화되었습니다. 새로운 대화를 시작해 주세요!**",
             ephemeral=False,
         )
 
@@ -85,7 +85,7 @@ class BotSettingsCog(commands.Cog):
         set_channel_setting(channel_id, "temperature", temp_map[수준])
 
         await interaction.response.send_message(
-            f"🔮 **AI 생각 수준이 변경되었습니다!**\n현재 채널의 설정: **{temp_name_map[수준]}**"
+            f"💚 **AI 생각 수준이 변경되었습니다!**\n현재 채널의 설정: **{temp_name_map[수준]}**"
         )
 
     @app_commands.command(name="모델선정", description="현재 채널 또는 DM에서 1차로 사용할 AI 모델을 선택합니다.")
@@ -117,7 +117,7 @@ class BotSettingsCog(commands.Cog):
 
         model_desc = "제미나이 (Gemini 3.5 Flash)" if 모델 == "Gemini" else "그록 라마 (Llama 3.3 70B)"
         await interaction.response.send_message(
-            f"🔮 **기본 AI 모델이 변경되었습니다!**\n현재 채널의 주력 모델: **{model_desc}**\n*(API 오류 발생 시 타 모델로 자동 이중화(Failover) 호출됩니다)*"
+            f"💚 **기본 AI 모델이 변경되었습니다!**\n현재 채널의 주력 모델: **{model_desc}**\n*(API 오류 발생 시 타 모델로 자동 이중화(Failover) 호출됩니다)*"
         )
 
 

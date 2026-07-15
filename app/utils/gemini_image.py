@@ -1,7 +1,7 @@
 import asyncio
 import base64
 
-from app.utils.gemini_client import _blocking_post, extract_inline_data
+from app.utils.gemini_client import _blocking_post, build_generate_content_body, extract_inline_data
 from app.utils.generation_defaults import (
     DEFAULT_IMAGE_ASPECT_RATIO,
     DEFAULT_IMAGE_FALLBACK_MODEL,
@@ -42,7 +42,7 @@ async def call_generate(
     if ar:
         gen_cfg["imageConfig"] = {"aspectRatio": ar}
 
-    body = {"contents": [{"parts": parts}], "generationConfig": gen_cfg}
+    body = build_generate_content_body(parts, gen_cfg)
     return await asyncio.to_thread(
         _blocking_post, url, body, error_prefix="Gemini image generation failed"
     )
