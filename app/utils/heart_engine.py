@@ -65,7 +65,7 @@ def render_heart(hex_color: str, style: dict | None = None) -> BytesIO:
         result = subprocess.run(
             [str(binary), "-w", str(width), "-h", str(height),
              "--background", "transparent", str(svg_path_tmp), str(png_path_tmp)],
-            capture_output=True, text=True,
+            capture_output=True, text=True, timeout=30,
         )
         if result.returncode != 0:
             raise RuntimeError(f"resvg 렌더링 실패: {result.stderr.strip()}")

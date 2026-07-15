@@ -219,6 +219,16 @@ class LLMService:
             response = await bound.ainvoke(current_messages, stop=stop)
             rounds += 1
 
+        if getattr(response, "tool_calls", None):
+            # 라운드를 다 썼는데도 모델이 도구를 더 부르려 하면, 이미 media_sink에
+            # 쌓인 생성물(이미지/음성)을 잃지 않도록 도구 바인딩 없이 한 번 더 호출해
+            # 지금까지의 결과로 텍스트 답변을 강제로 받는다.
+            current_messages.append(response)
+            current_messages.append(
+                HumanMessage(content="지금까지의 결과로 최종 답변만 텍스트로 정리해서 답해줘. 더 이상 도구는 호출하지 마.")
+            )
+            response = await eng_instance.ainvoke(current_messages, stop=stop)
+
         return response
 
     async def _rp_should_skip_reply(

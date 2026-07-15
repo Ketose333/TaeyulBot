@@ -6,7 +6,7 @@
 
 discord.py 기반 AI 컴패니언 봇. 대화(Gemini/Groq-Llama)·롤플레이·별자리 운세·이미지/음성/음악 생성을 제공한다. Oracle Cloud Free Tier **1GB VM**에서 systemd로 상시 구동 — 무거운 의존성(torch/numpy/sklearn 등 ML 프레임워크)은 절대 추가하지 않는다.
 
-### 설계 배경 (구 `docs/prd.md`에서 통합, 2026-07-15)
+### 설계 배경 (과거 PRD 문서에서 통합 후 삭제, 2026-07-15)
 
 옛 OpenClaw 연동 방식은 모든 디스코드 메시지를 강제로 LLM 컨텍스트에 넘겨 AI가 엉뚱하게 참견하는 문제가 있었다. 그래서 discord.py 봇 본체에 라우팅 필터를 직접 둬서, 아래 조건 중 하나를 만족할 때만 AI가 응답한다(`app/services/chat_orchestrator.py`의 `evaluate_message_routing`이 단일 소스):
 1. DM(무조건 통과)

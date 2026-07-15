@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import asyncio
 import logging
 
 import discord
@@ -23,7 +24,7 @@ class EmojiCog(commands.Cog):
     async def generate_text_emoji(self, interaction: discord.Interaction, 텍스트: str) -> None:
         await interaction.response.defer(thinking=True)
         try:
-            emoji_name, buf = render_text_emoji(텍스트)
+            emoji_name, buf = await asyncio.to_thread(render_text_emoji, 텍스트)
         except Exception:
             log.exception("텍스트 이모지 생성 실패: text=%s", 텍스트)
             await interaction.followup.send("❌ 이모지 생성 중 오류가 발생했습니다.")
@@ -41,7 +42,7 @@ class EmojiCog(commands.Cog):
     async def generate_heart_emoji(self, interaction: discord.Interaction, 색상: str) -> None:
         await interaction.response.defer(thinking=True)
         try:
-            buf = render_heart(색상)
+            buf = await asyncio.to_thread(render_heart, 색상)
         except ValueError as e:
             await interaction.followup.send(f"❌ {e}")
             return
