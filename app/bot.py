@@ -57,7 +57,7 @@ class TaeyulBot(commands.Bot):
             log.info("개발용 길드 즉시 동기화 완료 (GUILD_ID=%s)", GUILD_ID)
 
     async def on_ready(self) -> None:
-        await self.change_presence(activity=discord.Game(name="한태율 | /운세순위"))
+        await self.change_presence(activity=discord.Game(name="말 걸어봐 | /운세순위"))
         log.info("봇 준비 완료: %s (ID: %s)", self.user, self.user.id)
         from app.utils.user_store import set_zodiac, get_zodiac
         if not get_zodiac(self.user.id):
