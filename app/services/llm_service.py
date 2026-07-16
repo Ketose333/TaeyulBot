@@ -37,14 +37,14 @@ def _read_persona_file(filename: str) -> str:
 
 
 def _build_persona_prompt() -> str:
-    # SOUL/IDENTITY/EMOTION은 항상 로드되는 페르소나 원문. MEMORY/USER는 오너 개인정보를
-    # 담고 있어 owner 세션에서만 별도로 주입한다(AGENTS.md의 "MEMORY.md는 메인 세션에서만" 규칙과 동일).
+    # SOUL/IDENTITY/EMOTION은 항상 로드되는 페르소나 원문. USER는 오너 개인정보를
+    # 담고 있어 owner 세션에서만 별도로 주입한다.
     sections = [_read_persona_file(f) for f in ("SOUL.md", "IDENTITY.md", "EMOTION.md")]
     return "\n\n---\n\n".join(s for s in sections if s)
 
 
 def _build_owner_context_prompt() -> str:
-    sections = [_read_persona_file(f) for f in ("USER.md", "MEMORY.md")]
+    sections = [_read_persona_file(f) for f in ("USER.md",)]
     return "\n\n---\n\n".join(s for s in sections if s)
 
 def _serialize_message(msg: BaseMessage) -> dict:
@@ -302,7 +302,7 @@ class LLMService:
             context_messages = history[-30:]
 
             # 페르소나 원문(SOUL/IDENTITY/EMOTION) 기반 시스템 프롬프트.
-            # owner(OWNER_DISCORD_ID) 세션에서만 USER.md/MEMORY.md(개인정보 포함)를 추가로 주입한다.
+            # owner(OWNER_DISCORD_ID) 세션에서만 USER.md(개인정보 포함)를 추가로 주입한다.
             persona_prompt = getattr(self, "persona_prompt", "") or _build_persona_prompt()
             owner_discord_id = getattr(self, "owner_discord_id", "")
             owner_context_prompt = getattr(self, "owner_context_prompt", "")

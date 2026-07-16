@@ -253,7 +253,7 @@ sudo journalctl -u taeyulbot -n 50
 | `GUILD_ID` | ❌ | 개발용 서버 ID — 설정 시 슬래시 커맨드 즉시 반영 (미설정 시 글로벌 동기화, 최대 1시간 소요) |
 | `GEMINI_API_KEY` | ✅ | AI 대화·운세 통계 차트 외 대부분 기능이 의존. 미설정 시 대화/RP/TTS 불가 |
 | `GROQ_API_KEY` | ❌ | `/모델선정`에서 Groq-Llama 선택 시 사용 |
-| `OWNER_DISCORD_ID` | ❌ | 설정한 Discord 사용자 ID의 대화에만 `app/persona/USER.md`, `MEMORY.md`(개인정보 포함)를 시스템 프롬프트에 추가 주입 |
+| `OWNER_DISCORD_ID` | ❌ | 설정한 Discord 사용자 ID의 대화에만 `app/persona/USER.md`(개인정보 포함)를 시스템 프롬프트에 추가 주입 |
 
 ---
 
@@ -305,7 +305,7 @@ TaeyulBot/
 │   │   ├── media_tools.py            # LLM function-calling 도구(이미지/음성 생성)
 │   │   ├── emoji_engine.py / heart_engine.py  # 이모지·하트 PNG 렌더링
 │   │   └── json_store.py             # 원자적 JSON 읽기/쓰기 공용 유틸
-│   ├── persona/                      # SOUL/IDENTITY/EMOTION/USER/MEMORY.md — 시스템 프롬프트 조립 원본
+│   ├── persona/                      # SOUL/IDENTITY/EMOTION/USER.md — 시스템 프롬프트 조립 원본
 │   └── assets/                       # 아바타, 폰트, 이모지 스타일, 이미지 프리셋
 ├── data/                             # 런타임 상태 (users.json, history.json, rp_rooms.json, chat_history.json 등)
 ├── assets/
