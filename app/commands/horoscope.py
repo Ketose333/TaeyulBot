@@ -11,7 +11,6 @@ from app.services.stats_service import get_leaderboard
 from app.utils.saju_engine import ZODIAC_SIGNS, get_compatibility, get_daily_energy
 from app.utils.user_store import get_zodiac, set_zodiac, load_all
 from app.utils.date_utils import kst_now, get_history, get_yesterday_rankings
-from app.utils.discord_reply import send_interaction_error
 
 from app.commands.horoscope_embeds import (
     _build_compatibility_embed,
@@ -35,6 +34,7 @@ from app.commands.horoscope_ui import (
     _compatibility_request_ids,
     _complete_compatibility_request,
     _get_registered_sign_or_reply,
+    _send_interaction_error,
     _send_stats,
     _sign_from_birthday,
     _unregistered_user_message,
@@ -63,7 +63,7 @@ class HoroscopeCog(commands.Cog):
             interaction.user.id,
             exc_info=(type(original), original, original.__traceback__),
         )
-        await send_interaction_error(interaction)
+        await _send_interaction_error(interaction)
 
     @app_commands.command(name="운세순위", description="오늘의 12개 별자리 운세 순위를 보여줍니다.")
     @app_commands.allowed_installs(guilds=True, users=True)
@@ -74,7 +74,7 @@ class HoroscopeCog(commands.Cog):
             data = get_today_fortune()
         except Exception:
             log.exception("오늘의 별자리 순위 처리 실패")
-            await send_interaction_error(interaction, "운세를 불러오지 못했습니다. 잠시 후 다시 시도해주세요.")
+            await _send_interaction_error(interaction, "운세를 불러오지 못했습니다. 잠시 후 다시 시도해주세요.")
             return
 
         now = kst_now()
@@ -106,7 +106,7 @@ class HoroscopeCog(commands.Cog):
             data = get_sign_fortune(별자리)
         except Exception:
             log.exception("별자리 운세 커맨드 처리 실패: sign=%s", 별자리)
-            await send_interaction_error(interaction, "운세를 불러오지 못했습니다. 잠시 후 다시 시도해주세요.")
+            await _send_interaction_error(interaction, "운세를 불러오지 못했습니다. 잠시 후 다시 시도해주세요.")
             return
 
         await interaction.followup.send(
@@ -137,7 +137,7 @@ class HoroscopeCog(commands.Cog):
             await _send_stats(interaction, 별자리, user=user)
         except Exception:
             log.exception("운세통계 커맨드 처리 실패: sign=%s", 별자리)
-            await send_interaction_error(interaction)
+            await _send_interaction_error(interaction)
 
     @app_commands.command(name="별자리", description="별자리 선택이나 생일 입력으로 나의 별자리를 등록합니다.")
     @app_commands.allowed_installs(guilds=True, users=True)

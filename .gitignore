@@ -9,7 +9,5 @@ data/history.json
 data/users.json
 data/chat_history.json
 data/channel_settings.json
-data/free_channels.json
-data/rp_rooms.json
 .claude/
 .serena/

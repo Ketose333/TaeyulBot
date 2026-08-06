@@ -33,8 +33,6 @@ class TaeyulBot(commands.Bot):
         await self.load_extension("app.commands.horoscope")
         await self.load_extension("app.commands.bot_settings")
         await self.load_extension("app.commands.emoji")
-        await self.load_extension("app.commands.music")
-        await self.load_extension("app.commands.media")
 
         # RP(롤플레이) 모드 제어 — 서브커맨드 그룹이라 Cog가 아닌 tree에 직접 등록
         from app.commands.roleplay import RoleplayGroup
@@ -59,7 +57,7 @@ class TaeyulBot(commands.Bot):
             log.info("개발용 길드 즉시 동기화 완료 (GUILD_ID=%s)", GUILD_ID)
 
     async def on_ready(self) -> None:
-        await self.change_presence(activity=discord.Game(name="말 걸어봐 | /운세순위"))
+        await self.change_presence(activity=discord.Game(name="한태율 | /운세순위"))
         log.info("봇 준비 완료: %s (ID: %s)", self.user, self.user.id)
         from app.utils.user_store import set_zodiac, get_zodiac
         if not get_zodiac(self.user.id):

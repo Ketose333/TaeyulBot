@@ -1,74 +1,34 @@
 <a id="readme-top"></a>
 
-# 한태율
+# 한태율 🔮
 
 ![Python](https://img.shields.io/badge/Python-3776AB?style=flat-square&logo=python&logoColor=white)
 ![discord.py](https://img.shields.io/badge/discord.py-5865F2?style=flat-square&logo=discord&logoColor=white)
-![Gemini](https://img.shields.io/badge/Gemini-8E75B2?style=flat-square&logo=googlegemini&logoColor=white)
-![Groq](https://img.shields.io/badge/Groq-F55036?style=flat-square&logo=groq&logoColor=white)
+![matplotlib](https://img.shields.io/badge/matplotlib-11557C?style=flat-square&logo=python&logoColor=white)
 
-Discord AI 컴패니언 봇. 멘션/자유대화로 나누는 일상 대화, 롤플레이 모드, 별자리 운세, 이모지·하트 생성 기능을 제공합니다.
+Discord 별자리 운세 봇. 오늘의 12별자리 순위·운세·월간 통계 차트를 제공합니다.
 
 ---
 
 ## 목차
 
-1. [프로젝트 소개](#프로젝트-소개)
-2. [기술 스택](#기술-스택)
-3. [봇 기능](#봇-기능)
-4. [로컬 개발](#로컬-개발)
-5. [서버 배포 (Oracle Cloud Free Tier 기준)](#서버-배포-oracle-cloud-free-tier-기준)
-6. [코드 업데이트](#코드-업데이트)
-7. [운영 명령어 모음](#운영-명령어-모음)
-8. [환경변수 (.env)](#환경변수-env)
-9. [Privileged Intent 설정 (필수)](#privileged-intent-설정-필수)
-10. [프로젝트 구조](#프로젝트-구조)
-11. [로드맵](#로드맵)
-12. [라이선스](#라이선스)
-13. [연락처](#연락처)
+1. [봇 명령어](#봇-명령어)
+2. [로컬 개발](#로컬-개발)
+3. [서버 배포 (Oracle Cloud Free Tier 기준)](#서버-배포-oracle-cloud-free-tier-기준)
+4. [코드 업데이트](#코드-업데이트)
+5. [운영 명령어 모음](#운영-명령어-모음)
+6. [환경변수 (.env)](#환경변수-env)
+7. [Privileged Intent 설정 (필수)](#privileged-intent-설정-필수)
+8. [프로젝트 구조](#프로젝트-구조)
+9. [로드맵](#로드맵)
+10. [라이선스](#라이선스)
+11. [연락처](#연락처)
 
 ---
 
 <p align="right">(<a href="#readme-top">맨 위로</a>)</p>
 
-## 프로젝트 소개
-
-한태율은 Discord 안에서 일상 대화와 롤플레이, 별자리 운세를 이용할 수 있도록 만든 개인 봇 프로젝트입니다. 채널·DM별 설정과 대화 상태를 분리하며, 공개 초대 링크는 운영 정책상 제공하지 않습니다.
-
-<p align="right">(<a href="#readme-top">맨 위로</a>)</p>
-
-## 기술 스택
-
-- **Runtime**: Python, discord.py
-- **AI**: Gemini, Groq
-- **Chart**: matplotlib
-- **Operations**: Oracle Cloud VM, systemd
-
-<p align="right">(<a href="#readme-top">맨 위로</a>)</p>
-
-## 봇 기능
-
-### 대화 (AI Chat)
-
-멘션하거나 DM을 보내면 Gemini/Groq-Llama 기반으로 대화합니다. 슬래시 커맨드 없이 자연어로 동작하며, 대화 중 필요하면 봇이 스스로 음성 메시지(TTS)를 보내거나("우울한데 노래 추천해줘"처럼) 실제 발매곡을 추천하기도 합니다.
-
-| 명령어 | 설명 |
-|---|---|
-| `/자유대화` | 이 채널에서 멘션 없이도 모든 메시지에 응답하도록 설정 |
-| `/대화초기화` | 현재 채널/DM의 AI 대화 기억 초기화 |
-| `/생각수준 [수준]` | 답변의 창의성(논리적/일반적/창의적) 설정 |
-| `/모델선정 [모델]` | 1차로 사용할 AI 모델(Gemini/Groq-Llama) 선택 |
-
-### 롤플레이
-
-| 명령어 | 설명 |
-|---|---|
-| `/롤플레이 시작` | 이 채널/DM에서 RP 모드 시작 (서버 채널이면 전용 스레드 생성) |
-| `/롤플레이 끝` | RP 모드 종료 |
-| `/롤플레이 이름 [호칭]` | RP 중 나를 부를 호칭 설정 (비우면 해제) |
-| `/롤플레이 사용자명` | 현재 설정된 내 호칭 확인 |
-
-### 운세
+## 봇 명령어
 
 | 명령어 | 설명 |
 |---|---|
@@ -79,28 +39,12 @@ Discord AI 컴패니언 봇. 멘션/자유대화로 나누는 일상 대화, 롤
 | `/궁합 [상대] [별자리1] [별자리2]` | 두 별자리의 오행 궁합 점수·풀이 |
 | `/리더보드` | 이달 평균 순위가 좋은 이용자 랭킹 (서버 멤버 기준, DM은 전체) |
 | `/오늘의기운` | 오늘의 천간·오행 기운과 기운 받는/주의할 별자리 안내 |
-
-운세 메시지 내 드랍다운·버튼으로 다른 별자리 전환, 통계 그래프, 프로필(최근 7일 순위 타임라인) 확인 가능.
-미등록 상대에게 궁합을 요청하면 상대가 별자리 선택 또는 생일 입력 후 같은 메시지에서 결과를 확인할 수 있습니다.
-
-### 미디어 생성
-
-이미지/음성은 대화 중 자연어로도(LLM function-calling 도구), 슬래시 커맨드로도 명시적으로 트리거할 수 있습니다.
-
-| 명령어 | 설명 |
-|---|---|
-| `/이미지생성 [프롬프트]` | 한태율 정체성을 유지한 이미지 생성 (현재 Gemini 무료 티어 쿼터 소진으로 비활성화, `app.config.ENABLE_IMAGE_GENERATION`) |
-| `/음성생성 [텍스트]` | 텍스트를 한태율 목소리 음성 파일로 생성 |
-
-### 유틸
-
-| 명령어 | 설명 |
-|---|---|
 | `/이모지생성 [텍스트]` | 한글 텍스트를 디스코드 커스텀 이모지 스타일 PNG로 렌더링 |
 | `/하트생성 [색상]` | 지정한 hex 색상의 하트 이모지 PNG 렌더링 |
-| `/음악추천 [상황] [한국곡만]` | 기분/상황에 맞는 실제 발매곡 추천 (Spotify/YouTube Music/Apple Music 링크, 오디오 재생 없음) |
 
-User-Installable App — 서버 없이 DM에서도 모든 기능 사용 가능.
+운세 메시지 내 드랍다운·버튼으로 다른 별자리 전환, 통계 그래프, 프로필(최근 7일 순위 타임라인) 확인 가능.  
+미등록 상대에게 궁합을 요청하면 상대가 별자리 선택 또는 생일 입력 후 같은 메시지에서 결과를 확인할 수 있습니다.
+User-Installable App — 서버 없이 DM에서도 사용 가능.
 
 <p align="right">(<a href="#readme-top">맨 위로</a>)</p>
 
@@ -285,9 +229,6 @@ sudo journalctl -u taeyulbot -n 50
 |---|---|---|
 | `DISCORD_TOKEN` | ✅ | Discord Developer Portal에서 발급 |
 | `GUILD_ID` | ❌ | 개발용 서버 ID — 설정 시 슬래시 커맨드 즉시 반영 (미설정 시 글로벌 동기화, 최대 1시간 소요) |
-| `GEMINI_API_KEY` | ✅ | AI 대화·운세 통계 차트 외 대부분 기능이 의존. 미설정 시 대화/RP/TTS 불가 |
-| `GROQ_API_KEY` | ❌ | `/모델선정`에서 Groq-Llama 선택 시 사용 |
-| `OWNER_DISCORD_ID` | ❌ | 설정한 Discord 사용자 ID의 대화에만 `app/persona/USER.md`(개인정보 포함)를 시스템 프롬프트에 추가 주입 |
 
 ---
 
@@ -313,43 +254,23 @@ Developer Portal → 해당 앱 → **Bot** → **Privileged Gateway Intents** �
 TaeyulBot/
 ├── main.py
 ├── app/
-│   ├── bot.py                        # 봇 초기화, on_message 라우팅, persistent view 등록
-│   ├── config.py                     # 환경변수 로딩
-│   ├── commands/
-│   │   ├── horoscope.py              # 운세 슬래시 커맨드
-│   │   ├── horoscope_embeds.py       # 운세 임베드 빌더
-│   │   ├── horoscope_ui.py           # 운세 버튼/드랍다운 View
-│   │   ├── roleplay.py               # /롤플레이 슬래시 커맨드
-│   │   ├── bot_settings.py           # /자유대화, /대화초기화, /생각수준, /모델선정
-│   │   ├── emoji.py                  # /이모지생성, /하트생성
-│   │   ├── media.py                  # /이미지생성, /음성생성
-│   │   └── music.py                  # /음악추천
+│   ├── bot.py                   # 봇 초기화, persistent view 등록
+│   ├── commands/horoscope.py    # 슬래시 커맨드 + 버튼/드랍다운
 │   ├── services/
-│   │   ├── chat_orchestrator.py      # on_message → LLM 응답 라우팅 서비스 계층
-│   │   ├── llm_service.py            # Gemini/Groq 호출, 시스템 프롬프트 조립, function-calling 도구 등록
-│   │   ├── horoscope_service.py      # 운세 생성·캐싱
-│   │   ├── stats_service.py          # 월간 통계 집계
-│   │   └── ranking_service.py        # 일일 순위 생성
-│   ├── utils/
-│   │   ├── saju_engine.py            # 별자리 데이터·운세 텍스트
-│   │   ├── stats_chart.py            # matplotlib 순위 차트
-│   │   ├── date_utils.py             # KST 날짜 헬퍼, history.json I/O
-│   │   ├── user_store.py             # 유저 별자리 등록 (data/users.json)
-│   │   ├── channel_settings.py       # 채널별 자유대화/모델/생각수준 설정 (data/*.json)
-│   │   ├── rp_store.py / rp_prompt.py# 롤플레이 상태·프롬프트 조립
-│   │   ├── gemini_client.py          # Gemini API 클라이언트
-│   │   ├── gemini_tts.py             # 음성 메시지 생성(TTS)
-│   │   ├── gemini_image.py           # 이미지 생성 (현재 비활성화)
-│   │   ├── media_tools.py            # LLM function-calling 도구(이미지/음성 생성)
-│   │   ├── emoji_engine.py / heart_engine.py  # 이모지·하트 PNG 렌더링
-│   │   └── json_store.py             # 원자적 JSON 읽기/쓰기 공용 유틸
-│   ├── persona/                      # SOUL/IDENTITY/EMOTION/USER.md — 시스템 프롬프트 조립 원본
-│   └── assets/                       # 아바타, 폰트, 이모지 스타일, 이미지 프리셋
-├── data/                             # 런타임 상태 (users.json, history.json, rp_rooms.json, chat_history.json 등)
+│   │   ├── horoscope_service.py # 운세 생성·캐싱
+│   │   ├── stats_service.py     # 월간 통계 집계
+│   │   └── ranking_service.py  # 일일 순위 생성
+│   └── utils/
+│       ├── saju_engine.py       # 별자리 데이터·운세 텍스트
+│       ├── stats_chart.py       # matplotlib 순위 차트
+│       ├── date_utils.py        # KST 날짜 헬퍼, history.json I/O
+│       └── user_store.py        # 유저 별자리 등록 (data/users.json)
+├── data/
+│   ├── history.json             # 일별 운세 히스토리 (30일)
+│   └── users.json               # 유저 별자리 등록 정보
 ├── assets/
-│   ├── jalsalge.png                  # 1위 반응 이미지
-│   └── jalgage.png                   # 12위 반응 이미지
-├── tests/
+│   ├── jalsalge.png             # 1위 반응 이미지
+│   └── jalgage.png              # 12위 반응 이미지
 ├── .env.example
 └── requirements.txt
 ```

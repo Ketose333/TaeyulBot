@@ -8,20 +8,18 @@ from langchain_core.messages import HumanMessage, AIMessage, BaseMessage, System
 from langchain_google_genai import ChatGoogleGenerativeAI
 from langchain_groq import ChatGroq
 
-from app.config import (
-    ENABLE_IMAGE_GENERATION,
-    GEMINI_API_KEY,
-    GROQ_API_KEY,
-    LANGCHAIN_API_KEY,
-    OWNER_DISCORD_ID,
-)
+from app.config import GEMINI_API_KEY, GROQ_API_KEY, LANGCHAIN_API_KEY, OWNER_DISCORD_ID
 from app.utils.file_tool import FS_TOOLS
 from app.utils.media_tools import MediaSink, make_media_tools
-from app.utils.music_tools import make_music_tools
 from app.utils import rp_store
 from app.utils.rp_prompt import build_rp_prompt_block, has_placeholder_pattern, looks_truncated
 
 _MAX_TOOL_ROUNDS = 4
+
+# Gemini 무료 티어의 이미지 생성 모델(nano-banana-pro-preview 등) 쿼터가 0으로 막혀 있고
+# 결제 계정을 연결하지 않기로 해서, 대안이 정해지기 전까지 이미지 생성 도구를 LLM에서 임시로 뺀다.
+# 음성 생성(TTS)은 별도 모델이라 영향 없음.
+_ENABLE_IMAGE_GENERATION = False
 
 log = logging.getLogger(__name__)
 
@@ -37,14 +35,14 @@ def _read_persona_file(filename: str) -> str:
 
 
 def _build_persona_prompt() -> str:
-    # SOUL/IDENTITY/EMOTION은 항상 로드되는 페르소나 원문. USER는 오너 개인정보를
-    # 담고 있어 owner 세션에서만 별도로 주입한다.
+    # SOUL/IDENTITY/EMOTION은 항상 로드되는 페르소나 원문. MEMORY/USER는 오너 개인정보를
+    # 담고 있어 owner 세션에서만 별도로 주입한다(AGENTS.md의 "MEMORY.md는 메인 세션에서만" 규칙과 동일).
     sections = [_read_persona_file(f) for f in ("SOUL.md", "IDENTITY.md", "EMOTION.md")]
     return "\n\n---\n\n".join(s for s in sections if s)
 
 
 def _build_owner_context_prompt() -> str:
-    sections = [_read_persona_file(f) for f in ("USER.md",)]
+    sections = [_read_persona_file(f) for f in ("USER.md", "MEMORY.md")]
     return "\n\n---\n\n".join(s for s in sections if s)
 
 def _serialize_message(msg: BaseMessage) -> dict:
@@ -195,8 +193,7 @@ class LLMService:
         # 파일시스템 도구(FS_TOOLS)는 owner 세션에서만, 이미지/음성 생성 도구는
         # 게이팅 없이 전체 유저에게 항상 노출한다.
         tools = list(FS_TOOLS) if allow_fs_tools else []
-        tools += make_media_tools(media_sink, self.gemini_api_key, include_image=ENABLE_IMAGE_GENERATION)
-        tools += make_music_tools(self.groq_api_key)
+        tools += make_media_tools(media_sink, self.gemini_api_key, include_image=_ENABLE_IMAGE_GENERATION)
         tools_by_name = {t.name: t for t in tools}
 
         bound = eng_instance.bind_tools(tools)
@@ -218,16 +215,6 @@ class LLMService:
                 current_messages.append(ToolMessage(content=str(result), tool_call_id=call["id"]))
             response = await bound.ainvoke(current_messages, stop=stop)
             rounds += 1
-
-        if getattr(response, "tool_calls", None):
-            # 라운드를 다 썼는데도 모델이 도구를 더 부르려 하면, 이미 media_sink에
-            # 쌓인 생성물(이미지/음성)을 잃지 않도록 도구 바인딩 없이 한 번 더 호출해
-            # 지금까지의 결과로 텍스트 답변을 강제로 받는다.
-            current_messages.append(response)
-            current_messages.append(
-                HumanMessage(content="지금까지의 결과로 최종 답변만 텍스트로 정리해서 답해줘. 더 이상 도구는 호출하지 마.")
-            )
-            response = await eng_instance.ainvoke(current_messages, stop=stop)
 
         return response
 
@@ -302,7 +289,7 @@ class LLMService:
             context_messages = history[-30:]
 
             # 페르소나 원문(SOUL/IDENTITY/EMOTION) 기반 시스템 프롬프트.
-            # owner(OWNER_DISCORD_ID) 세션에서만 USER.md(개인정보 포함)를 추가로 주입한다.
+            # owner(OWNER_DISCORD_ID) 세션에서만 USER.md/MEMORY.md(개인정보 포함)를 추가로 주입한다.
             persona_prompt = getattr(self, "persona_prompt", "") or _build_persona_prompt()
             owner_discord_id = getattr(self, "owner_discord_id", "")
             owner_context_prompt = getattr(self, "owner_context_prompt", "")

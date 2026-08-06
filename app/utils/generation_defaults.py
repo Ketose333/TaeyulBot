@@ -9,10 +9,6 @@ DEFAULT_IMAGE_ASPECT_RATIO = "1:1"
 DEFAULT_TTS_MODEL = "gemini-2.5-flash-preview-tts"
 DEFAULT_TTS_VOICE = "Fenrir"
 
-MUSIC_MOOD_TAGS = ["happy", "energetic", "relaxing", "film", "dark"]
-DEFAULT_MUSIC_COUNTRY = "KR"
-DEFAULT_MUSIC_RECOMMEND_COUNT = 5
-
 _APP_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 AVATAR_DIR = os.path.join(_APP_DIR, "assets", "avatars")
 DEFAULT_TAEYUL_REF_IMAGE = os.path.join(AVATAR_DIR, "taeyul.png")

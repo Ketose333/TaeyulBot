@@ -1,7 +1,7 @@
 import os
 import tempfile
 import pytest
-from unittest.mock import patch, MagicMock, AsyncMock
+from unittest.mock import patch, MagicMock
 
 from app.services.llm_service import LLMService, _serialize_message, _deserialize_message, _strip_leaked_speaker_labels
 from langchain_core.messages import HumanMessage, AIMessage
@@ -80,42 +80,6 @@ async def test_llm_service_fallback_behavior():
             assert history[0].content == "test prompt"
             assert isinstance(history[1], AIMessage)
             assert history[1].content == "Groq response"
-
-@pytest.mark.asyncio
-async def test_invoke_with_tools_forces_final_text_after_round_exhaustion():
-    """도구 라운드(_MAX_TOOL_ROUNDS)를 다 써도 모델이 계속 tool_calls를 반환하면,
-    도구 바인딩 없이 한 번 더 호출해 텍스트 전용 응답을 강제로 받아야 한다
-    (안 그러면 media_sink에 쌓인 생성물이 빈 ai_content와 함께 유실됨)."""
-    with patch("app.services.llm_service.LLMService.__init__", lambda self: None):
-        svc = LLMService()
-        svc.gemini_api_key = ""
-        svc.groq_api_key = ""
-
-        tool_call_response = MagicMock()
-        tool_call_response.content = ""
-        tool_call_response.tool_calls = [{"name": "unknown_tool", "args": {}, "id": "call-1"}]
-
-        final_text_response = MagicMock()
-        final_text_response.content = "정리된 최종 답변"
-        final_text_response.tool_calls = None
-
-        eng_instance = MagicMock()
-        eng_instance.bind_tools = lambda tools: eng_instance
-        # bound.ainvoke는 항상 tool_calls를 반환(라운드 소진 시나리오 재현)
-        eng_instance.ainvoke = AsyncMock(side_effect=[
-            tool_call_response, tool_call_response, tool_call_response, tool_call_response, tool_call_response,
-            final_text_response,  # 라운드 소진 후 도구 바인딩 없이 호출되는 마지막 한 번
-        ])
-
-        media_sink = MagicMock()
-        result = await svc._invoke_with_tools(
-            eng_instance, [HumanMessage(content="hi")], allow_fs_tools=False, media_sink=media_sink
-        )
-
-        assert result is final_text_response
-        assert result.tool_calls is None
-        assert result.content == "정리된 최종 답변"
-
 
 def test_channel_store():
     from app.utils.channel_settings import enable_free_response, disable_free_response, is_free_response_enabled

@@ -40,6 +40,7 @@ async def handle_message(bot, message: discord.Message, *, is_dm: bool, is_menti
             clean_prompt = clean_prompt.replace(f"@{bot.user.display_name}", "").replace(f"@{bot.user.name}", "").strip()
 
             if not clean_prompt:
+                await message.reply("안녕하세요! 질문을 입력해주시면 답변해 드릴게요. 🔮")
                 return
 
             session_id = str(message.channel.id)

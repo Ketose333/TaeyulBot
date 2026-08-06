@@ -6,7 +6,6 @@ from unittest.mock import AsyncMock, patch
 import pytest
 
 from app.commands.bot_settings import BotSettingsCog
-from app.utils.discord_reply import send_interaction_error
 from app.commands.horoscope import (
     CompatibilityInviteView,
     HoroscopeCog,
@@ -20,6 +19,7 @@ from app.commands.horoscope import (
     _compatibility_request_content,
     _compatibility_request_ids,
     _complete_compatibility_request,
+    _send_interaction_error,
     _send_stats,
     _registered_sign_message,
     _zodiac_select_options,
@@ -344,7 +344,7 @@ async def test_interaction_error_does_not_expose_exception_details():
     )
     interaction = SimpleNamespace(response=response)
 
-    await send_interaction_error(interaction)
+    await _send_interaction_error(interaction)
 
     message = response.send_message.await_args.args[0]
     assert "오류" in message

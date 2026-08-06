@@ -2,19 +2,21 @@ import asyncio
 import io
 import wave
 
-from app.utils.gemini_client import _blocking_post, build_generate_content_body, extract_inline_data
+from app.utils.gemini_client import _blocking_post, extract_inline_data
 from app.utils.generation_defaults import DEFAULT_TTS_MODEL, DEFAULT_TTS_VOICE
 
 
 async def call_tts(api_key: str, model: str, text: str, voice: str) -> dict:
     url = f"https://generativelanguage.googleapis.com/v1beta/{model}:generateContent?key={api_key}"
-    gen_cfg = {
-        "responseModalities": ["AUDIO"],
-        "speechConfig": {
-            "voiceConfig": {"prebuiltVoiceConfig": {"voiceName": voice}}
+    body = {
+        "contents": [{"parts": [{"text": text}]}],
+        "generationConfig": {
+            "responseModalities": ["AUDIO"],
+            "speechConfig": {
+                "voiceConfig": {"prebuiltVoiceConfig": {"voiceName": voice}}
+            },
         },
     }
-    body = build_generate_content_body([{"text": text}], gen_cfg)
     return await asyncio.to_thread(_blocking_post, url, body, error_prefix="Gemini TTS failed")
 
 
