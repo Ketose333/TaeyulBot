@@ -29,9 +29,13 @@ Discord AI 컴패니언 봇. 멘션/자유대화로 나누는 일상 대화, 롤
 
 ---
 
+<p align="right">(<a href="#readme-top">맨 위로</a>)</p>
+
 ## 프로젝트 소개
 
 한태율은 Discord 안에서 일상 대화와 롤플레이, 별자리 운세를 이용할 수 있도록 만든 개인 봇 프로젝트입니다. 채널·DM별 설정과 대화 상태를 분리하며, 공개 초대 링크는 운영 정책상 제공하지 않습니다.
+
+<p align="right">(<a href="#readme-top">맨 위로</a>)</p>
 
 ## 기술 스택
 
@@ -128,6 +132,8 @@ rm -f ~/.cache/matplotlib/fontlist-*.json
 ```
 
 ---
+
+<p align="right">(<a href="#readme-top">맨 위로</a>)</p>
 
 ## 서버 배포 (Oracle Cloud Free Tier 기준)
 
@@ -232,6 +238,8 @@ sudo systemctl status taeyulbot   # active (running) 확인
 
 ---
 
+<p align="right">(<a href="#readme-top">맨 위로</a>)</p>
+
 ## 코드 업데이트
 
 로컬에서 수정 → push → 서버에서:
@@ -246,6 +254,8 @@ sudo systemctl status taeyulbot
 ```
 
 ---
+
+<p align="right">(<a href="#readme-top">맨 위로</a>)</p>
 
 ## 운영 명령어 모음
 
@@ -267,6 +277,8 @@ sudo journalctl -u taeyulbot -n 50
 
 ---
 
+<p align="right">(<a href="#readme-top">맨 위로</a>)</p>
+
 ## 환경변수 (.env)
 
 | 변수 | 필수 | 설명 |
@@ -279,6 +291,8 @@ sudo journalctl -u taeyulbot -n 50
 
 ---
 
+<p align="right">(<a href="#readme-top">맨 위로</a>)</p>
+
 ## Privileged Intent 설정 (필수)
 
 `/리더보드`가 서버 멤버를 식별하려면 **Server Members Intent**가 필요합니다.
@@ -290,6 +304,8 @@ Developer Portal → 해당 앱 → **Bot** → **Privileged Gateway Intents** �
 > (봇이 100개 미만 서버에 있으면 별도 인증 없이 사용 가능)
 
 ---
+
+<p align="right">(<a href="#readme-top">맨 위로</a>)</p>
 
 ## 프로젝트 구조
 
@@ -347,9 +363,13 @@ TaeyulBot/
 - [x] 사용자 설치 앱과 DM 사용 지원
 - [ ] 운영 데이터의 영속 저장소 전환 검토
 
+<p align="right">(<a href="#readme-top">맨 위로</a>)</p>
+
 ## 라이선스
 
 별도 오픈소스 라이선스는 지정되어 있지 않습니다.
+
+<p align="right">(<a href="#readme-top">맨 위로</a>)</p>
 
 ## 연락처
 
