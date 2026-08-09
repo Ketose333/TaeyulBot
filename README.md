@@ -1,3 +1,5 @@
+<a id="readme-top"></a>
+
 # 한태율
 
 ![Python](https://img.shields.io/badge/Python-3776AB?style=flat-square&logo=python&logoColor=white)
@@ -11,16 +13,38 @@ Discord AI 컴패니언 봇. 멘션/자유대화로 나누는 일상 대화, 롤
 
 ## 목차
 
-1. [봇 기능](#봇-기능)
-2. [로컬 개발](#로컬-개발)
-3. [서버 배포 (Oracle Cloud Free Tier 기준)](#서버-배포-oracle-cloud-free-tier-기준)
-4. [코드 업데이트](#코드-업데이트)
-5. [운영 명령어 모음](#운영-명령어-모음)
-6. [환경변수 (.env)](#환경변수-env)
-7. [Privileged Intent 설정 (필수)](#privileged-intent-설정-필수)
-8. [프로젝트 구조](#프로젝트-구조)
+1. [프로젝트 소개](#프로젝트-소개)
+2. [기술 스택](#기술-스택)
+3. [봇 기능](#봇-기능)
+4. [로컬 개발](#로컬-개발)
+5. [서버 배포 (Oracle Cloud Free Tier 기준)](#서버-배포-oracle-cloud-free-tier-기준)
+6. [코드 업데이트](#코드-업데이트)
+7. [운영 명령어 모음](#운영-명령어-모음)
+8. [환경변수 (.env)](#환경변수-env)
+9. [Privileged Intent 설정 (필수)](#privileged-intent-설정-필수)
+10. [프로젝트 구조](#프로젝트-구조)
+11. [로드맵](#로드맵)
+12. [라이선스](#라이선스)
+13. [연락처](#연락처)
 
 ---
+
+<p align="right">(<a href="#readme-top">맨 위로</a>)</p>
+
+## 프로젝트 소개
+
+한태율은 Discord 안에서 일상 대화와 롤플레이, 별자리 운세를 이용할 수 있도록 만든 개인 봇 프로젝트입니다. 채널·DM별 설정과 대화 상태를 분리하며, 공개 초대 링크는 운영 정책상 제공하지 않습니다.
+
+<p align="right">(<a href="#readme-top">맨 위로</a>)</p>
+
+## 기술 스택
+
+- **Runtime**: Python, discord.py
+- **AI**: Gemini, Groq
+- **Chart**: matplotlib
+- **Operations**: Oracle Cloud VM, systemd
+
+<p align="right">(<a href="#readme-top">맨 위로</a>)</p>
 
 ## 봇 기능
 
@@ -78,6 +102,8 @@ Discord AI 컴패니언 봇. 멘션/자유대화로 나누는 일상 대화, 롤
 
 User-Installable App — 서버 없이 DM에서도 모든 기능 사용 가능.
 
+<p align="right">(<a href="#readme-top">맨 위로</a>)</p>
+
 ---
 
 ## 로컬 개발
@@ -106,6 +132,8 @@ rm -f ~/.cache/matplotlib/fontlist-*.json
 ```
 
 ---
+
+<p align="right">(<a href="#readme-top">맨 위로</a>)</p>
 
 ## 서버 배포 (Oracle Cloud Free Tier 기준)
 
@@ -210,6 +238,8 @@ sudo systemctl status taeyulbot   # active (running) 확인
 
 ---
 
+<p align="right">(<a href="#readme-top">맨 위로</a>)</p>
+
 ## 코드 업데이트
 
 로컬에서 수정 → push → 서버에서:
@@ -224,6 +254,8 @@ sudo systemctl status taeyulbot
 ```
 
 ---
+
+<p align="right">(<a href="#readme-top">맨 위로</a>)</p>
 
 ## 운영 명령어 모음
 
@@ -245,6 +277,8 @@ sudo journalctl -u taeyulbot -n 50
 
 ---
 
+<p align="right">(<a href="#readme-top">맨 위로</a>)</p>
+
 ## 환경변수 (.env)
 
 | 변수 | 필수 | 설명 |
@@ -257,6 +291,8 @@ sudo journalctl -u taeyulbot -n 50
 
 ---
 
+<p align="right">(<a href="#readme-top">맨 위로</a>)</p>
+
 ## Privileged Intent 설정 (필수)
 
 `/리더보드`가 서버 멤버를 식별하려면 **Server Members Intent**가 필요합니다.
@@ -268,6 +304,8 @@ Developer Portal → 해당 앱 → **Bot** → **Privileged Gateway Intents** �
 > (봇이 100개 미만 서버에 있으면 별도 인증 없이 사용 가능)
 
 ---
+
+<p align="right">(<a href="#readme-top">맨 위로</a>)</p>
 
 ## 프로젝트 구조
 
@@ -315,3 +353,27 @@ TaeyulBot/
 ├── .env.example
 └── requirements.txt
 ```
+
+<p align="right">(<a href="#readme-top">맨 위로</a>)</p>
+
+## 로드맵
+
+- [x] Discord 대화와 채널별 설정
+- [x] 별자리 등록·일일 운세·월간 통계
+- [x] 사용자 설치 앱과 DM 사용 지원
+- [ ] 운영 데이터의 영속 저장소 전환 검토
+
+<p align="right">(<a href="#readme-top">맨 위로</a>)</p>
+
+## 라이선스
+
+별도 오픈소스 라이선스는 지정되어 있지 않습니다.
+
+<p align="right">(<a href="#readme-top">맨 위로</a>)</p>
+
+## 연락처
+
+- GitHub: [Ketose333](https://github.com/Ketose333)
+- 문의: 이 저장소의 GitHub Issues
+
+<p align="right">(<a href="#readme-top">맨 위로</a>)</p>
