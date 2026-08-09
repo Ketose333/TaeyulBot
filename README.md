@@ -377,3 +377,11 @@ TaeyulBot/
 - 문의: 이 저장소의 GitHub Issues
 
 <p align="right">(<a href="#readme-top">맨 위로</a>)</p>
+
+<!-- PORTFOLIO:FACTS:START -->
+- 기간: 2026.06.12 ~ 2026.08.06 (completed)
+- 현재 스택: Python, discord.py, LangChain, Gemini API, Groq, systemd
+- 현재 설명: 별자리 운세와 LLM 롤플레이 대화를 제공하는 Discord 봇
+- 저장소: https://github.com/Ketose333/TaeyulBot
+- PDF: taeyulbot.pdf
+<!-- PORTFOLIO:FACTS:END -->
