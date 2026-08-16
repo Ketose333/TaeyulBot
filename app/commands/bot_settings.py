@@ -92,7 +92,7 @@ class BotSettingsCog(commands.Cog):
     @app_commands.describe(모델="주력으로 호출할 AI 모델 선택")
     @app_commands.choices(모델=[
         app_commands.Choice(name="Gemini (다정하고 빠른 제미나이 3.5)", value="Gemini"),
-        app_commands.Choice(name="Groq-Llama (정교하고 깊이있는 Llama 70B)", value="Groq")
+        app_commands.Choice(name="Groq GPT-OSS (빠르고 깊이있는 GPT-OSS 120B)", value="Groq")
     ])
     @app_commands.allowed_installs(guilds=True, users=True)
     @app_commands.allowed_contexts(guilds=True, dms=True, private_channels=True)
@@ -115,7 +115,7 @@ class BotSettingsCog(commands.Cog):
         channel_id = interaction.channel.id
         set_channel_setting(channel_id, "model", 모델)
 
-        model_desc = "제미나이 (Gemini 3.5 Flash)" if 모델 == "Gemini" else "그록 라마 (Llama 3.3 70B)"
+        model_desc = "제미나이 (Gemini 3.5 Flash)" if 모델 == "Gemini" else "그록 (GPT-OSS 120B)"
         await interaction.response.send_message(
             f"🔮 **기본 AI 모델이 변경되었습니다!**\n현재 채널의 주력 모델: **{model_desc}**\n*(API 오류 발생 시 타 모델로 자동 이중화(Failover) 호출됩니다)*"
         )

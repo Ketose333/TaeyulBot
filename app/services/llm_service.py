@@ -128,7 +128,7 @@ class LLMService:
         elif engine_name.lower() == "groq":
             if self.groq_api_key.strip():
                 return ChatGroq(
-                    model="llama-3.3-70b-versatile",
+                    model="openai/gpt-oss-120b",
                     groq_api_key=self.groq_api_key,
                     temperature=temperature
                 )

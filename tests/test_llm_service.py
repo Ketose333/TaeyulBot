@@ -35,6 +35,21 @@ def test_serialization():
     assert isinstance(deserialized_ai, AIMessage)
     assert deserialized_ai.content == "world"
 
+
+def test_groq_engine_uses_gpt_oss_120b_with_requested_temperature():
+    svc = LLMService.__new__(LLMService)
+    svc.groq_api_key = "test"
+
+    with patch("app.services.llm_service.ChatGroq") as mock_chat_groq:
+        engine = svc._get_llm_engine("groq", 0.25)
+
+    assert engine is mock_chat_groq.return_value
+    mock_chat_groq.assert_called_once_with(
+        model="openai/gpt-oss-120b",
+        groq_api_key="test",
+        temperature=0.25,
+    )
+
 @pytest.mark.asyncio
 async def test_llm_service_fallback_behavior():
     with tempfile.TemporaryDirectory() as tmpdir:
