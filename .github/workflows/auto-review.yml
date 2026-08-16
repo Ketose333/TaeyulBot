@@ -1,0 +1,62 @@
+name: Auto Review
+
+on:
+  pull_request:
+    branches: [master]
+
+permissions:
+  contents: read
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: 저장소 체크아웃
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+
+      - name: Python 설정
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.10"
+          cache: pip
+
+      - name: 의존성 설치
+        run: pip install -r requirements.txt
+
+      - name: 테스트
+        run: python -m pytest -q
+
+      - name: 추가 코드 시크릿 스캔
+        env:
+          BASE_REF: ${{ github.base_ref }}
+        run: |
+          python - <<'PY'
+          import os
+          import re
+          import subprocess
+
+          diff = subprocess.check_output(
+              ['git', 'diff', '--unified=0', f"origin/{os.environ['BASE_REF']}...HEAD"],
+              text=True,
+          )
+          added = '\n'.join(
+              line for line in diff.splitlines()
+              if line.startswith('+') and not line.startswith('+++')
+          )
+          keywords = (
+              'password', 'passwd', 'secret', 'token', 'api_key', 'apikey',
+              'access_key', 'private_key', 'sk-', 'ghp_', 'gho_', 'glpat-',
+              'AKIA', 'AIza',
+          )
+          pattern = re.compile(
+              rf"(?:{'|'.join(map(re.escape, keywords))})['\"]?\s*[:=]\s*['\"][^'\"]{{8,}}",
+              re.IGNORECASE,
+          )
+          if pattern.search(added):
+              raise SystemExit('하드코딩된 시크릿 후보를 발견했습니다. 값은 로그에 출력하지 않습니다.')
+          print('secret scan: PASS')
+          PY
