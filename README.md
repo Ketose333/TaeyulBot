@@ -12,7 +12,7 @@ Discord 별자리 운세 봇. 오늘의 12별자리 순위·운세·월간 통�
 
 <!-- PORTFOLIO:FACTS:START -->
 - 기간: 2026.06.12 ~ 2026.08.06 (8주) (completed)
-- 현재 스택: Python, discord.py, LangChain, Gemini API, Groq, systemd
+- 현재 스택: Python, discord.py, LangChain, Gemini API, Groq(`openai/gpt-oss-120b`), systemd
 - 현재 설명: 별자리 운세와 LLM 롤플레이 대화를 제공하는 Discord 봇
 - 저장소: https://github.com/Ketose333/TaeyulBot
 <!-- PORTFOLIO:FACTS:END -->

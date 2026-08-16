@@ -1,0 +1,167 @@
+name: Auto Review
+
+on:
+  pull_request:
+    branches: [master]
+
+permissions:
+  contents: read
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: 저장소 체크아웃
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+
+      - name: 추가 코드 시크릿 스캔
+        env:
+          BASE_REF: ${{ github.base_ref }}
+        run: |
+          python - <<'PY'
+          import os
+          import re
+          import subprocess
+
+          diff = subprocess.check_output(
+              ['git', 'diff', '--unified=0', f"origin/{os.environ['BASE_REF']}...HEAD"],
+              text=True,
+              encoding='utf-8',
+          )
+          added = '\n'.join(
+              line for line in diff.splitlines()
+              if line.startswith('+') and not line.startswith('+++')
+          )
+          sensitive_components = (
+              'password', 'passwd', 'secret', 'token', 'api_key', 'apikey',
+              'access_key', 'private_key',
+          )
+          binding_re = re.compile(
+              r"(?<![A-Za-z0-9_])(?P<quote>['\"]?)(?P<name>[A-Za-z_][A-Za-z0-9_]*)"
+              r"(?P=quote)\s*[:=]\s*"
+              r"(?P<value>[^\r\n#]+)",
+              re.IGNORECASE,
+          )
+          credential_re = re.compile(
+              r"(?<![A-Za-z0-9_-])(?:sk-[A-Za-z0-9_-]{16,}|gsk_[A-Za-z0-9_-]{20,}|"
+              r"ghp_[A-Za-z0-9]{16,}|"
+              r"gho_[A-Za-z0-9]{16,}|glpat-[A-Za-z0-9_-]{16,}|AKIA[A-Z0-9]{16}|"
+              r"AIza[A-Za-z0-9_-]{20,})"
+          )
+          discord_re = re.compile(
+              r"(?<![A-Za-z0-9_-])[A-Za-z0-9_-]{20,}\.[A-Za-z0-9_-]{6}\."
+              r"[A-Za-z0-9_-]{25,}(?![A-Za-z0-9_-])"
+          )
+          auth_header_re = re.compile(
+              r"\bAuthorization\s*[:=]\s*['\"]?Bearer\s+[A-Za-z0-9._~+/=-]{8,}",
+              re.IGNORECASE,
+          )
+          url_separator = '://'
+          database_url_re = re.compile(
+              rf"(?:jdbc:[a-z][a-z0-9+.-]*{re.escape(url_separator)}|"
+              rf"mysql{re.escape(url_separator)}|mongodb(?:\+srv)?{re.escape(url_separator)})"
+              r"[^\s'\"]+",
+              re.IGNORECASE,
+          )
+          pem_re = re.compile(
+              r"-----BEGIN\s+[A-Z0-9 ]*PRIVATE KEY-----",
+              re.IGNORECASE,
+          )
+
+          dummy_values = {
+              '', 'none', 'null', 'test', 'example', 'dummy', 'changeme',
+              'your-key-here',
+          }
+          reference_res = (
+              re.compile(r"^\$\{[A-Za-z_][A-Za-z0-9_]*\}$"),
+              re.compile(r"^\$\{\{\s*secrets\.[A-Za-z_][A-Za-z0-9_]*\s*\}\}$"),
+              re.compile(
+                  r"^(?:os\.)?getenv\(\s*['\"][A-Za-z_][A-Za-z0-9_]*['\"]"
+                  r"(?:\s*,\s*['\"]['\"])?\s*\)$"
+              ),
+              re.compile(r"^os\.environ\[\s*['\"][A-Za-z_][A-Za-z0-9_]*['\"]\s*\]$"),
+              re.compile(r"^(?:st\.)?secrets\[\s*['\"][A-Za-z_][A-Za-z0-9_]*['\"]\s*\]$"),
+          )
+
+          def is_sensitive_identifier(name: str) -> bool:
+              lowered = name.lower()
+              return any(component in lowered for component in sensitive_components)
+
+          def is_safe_assignment(value: str) -> bool:
+              normalized = value.strip().removesuffix(',').strip()
+              if (
+                  len(normalized) >= 2
+                  and normalized[0] in "'\""
+                  and normalized[-1] == normalized[0]
+              ):
+                  normalized = normalized[1:-1].strip()
+              lowered = normalized.lower()
+              return (
+                  lowered in dummy_values
+                  or any(pattern.fullmatch(normalized) for pattern in reference_res)
+              )
+
+          def contains_secret(text: str) -> bool:
+              for match in binding_re.finditer(text):
+                  if (
+                      is_sensitive_identifier(match.group('name'))
+                      and not is_safe_assignment(match.group('value'))
+                  ):
+                      return True
+              return any(pattern.search(text) for pattern in (
+                  credential_re,
+                  discord_re,
+                  auth_header_re,
+                  database_url_re,
+                  pem_re,
+              ))
+
+          dangerous_fixtures = (
+              'api' + '_key=' + 'a' * 24,
+              'GROQ_' + 'API_KEY' + '=' + 'f' * 24,
+              'DISCORD_' + 'TOKEN' + '=' + 'g' * 24,
+              'DB_' + 'PASSWORD' + '=' + 'h' * 24,
+              'TOKEN' + '=${' + 'TOKEN}' + 'hardcoded',
+              'pass' + 'word: ' + 'b' * 24,
+              's' + 'k-' + 'c' * 24,
+              'g' + 'sk_' + 'i' * 24,
+              'gh' + 'p_' + 'd' * 24,
+              'M' * 24 + '.' + 'j' * 6 + '.' + 'k' * 32,
+              'Author' + 'ization: ' + 'Bearer ' + 'e' * 24,
+              'jdbc:' + 'postgresql://user:pass@db/app',
+              'my' + 'sql://user:pass@db/app',
+              'mongo' + 'db://user:pass@db/app',
+              '-----BEGIN ' + 'PRIVATE KEY-----',
+          )
+          safe_fixtures = (
+              'api_key' + '=test',
+              'token' + '=example',
+              'GROQ_API_KEY' + '=${GROQ_API_KEY}',
+              'DISCORD_TOKEN' + '=os.getenv("DISCORD_TOKEN")',
+              'DB_PASSWORD' + '=os.environ["DB_PASSWORD"]',
+              'secret' + '=st.secrets["SECRET"]',
+              'Authorization: Bearer ${TOKEN}',
+          )
+          assert all(contains_secret(fixture) for fixture in dangerous_fixtures)
+          assert not any(contains_secret(fixture) for fixture in safe_fixtures)
+
+          if contains_secret(added):
+              raise SystemExit('하드코딩된 시크릿 후보를 발견했습니다. 값은 로그에 출력하지 않습니다.')
+          print('secret scan: PASS')
+          PY
+
+      - name: Python 설정
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.10"
+          cache: pip
+
+      - name: 의존성 설치
+        run: pip install -r requirements.txt
+
+      - name: 테스트
+        run: python -m pytest -q
